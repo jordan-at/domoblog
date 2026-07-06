@@ -29,12 +29,14 @@ content:
         required: true
         options:
           time: true
+          format: "yyyy-MM-dd'T'HH:mm:ssXXX"
 
       - name: modDatetime
         type: date
         required: false
         options:
           time: true
+          format: "yyyy-MM-dd'T'HH:mm:ssXXX"
 
       - name: author
         type: string
@@ -54,7 +56,7 @@ content:
         required: false
 
       - name: ogImage
-        type: string
+        type: image
         required: false
 
       - name: canonicalURL
@@ -91,7 +93,7 @@ content:
         required: false
 
       - name: ogImage
-        type: string
+        type: image
         required: false
 
       - name: canonicalURL
