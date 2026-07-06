@@ -17,6 +17,3 @@ test body
 
 ## this is heading
 
-
-
-&nbsp;
