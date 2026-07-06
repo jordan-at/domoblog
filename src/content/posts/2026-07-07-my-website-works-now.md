@@ -1,6 +1,6 @@
 ---
 title: MY WEBSITE WORKS NOW
-description: ": D"
+description: First blog post about my website. Hello!
 pubDatetime: 2026-07-07T00:12:00Z
 modDatetime: 2026-07-07T00:12:00Z
 author: Jordan
@@ -24,4 +24,4 @@ Irregardless (yeah, I know it's not a word), I now have:
 I need to go through the site and update the about section and whatever because as of current it will be a bunch of placeholder things, but that can be something for tomorrow Jordan because its 12:30AM right now and I think my girlfriend will hurt me if I don't switch the displays off
 
 Lots of Love,  
-Jordan
+Domo Thompson
