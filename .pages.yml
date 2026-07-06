@@ -68,8 +68,14 @@ content:
         required: false
 
       - name: timezone
-        type: string
+        type: select
         required: false
+        default: "Australia/Brisbane"
+        options:
+          - value: "Australia/Brisbane"
+            label: "Brisbane (AEST)"
+          - value: "UTC"
+            label: "UTC"
 
       - name: body
         type: rich-text
