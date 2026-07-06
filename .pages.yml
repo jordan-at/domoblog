@@ -6,7 +6,7 @@ content:
   - name: blog
     label: Blog Posts
     type: collection
-    path: src/data/blog
+    path: src/content/posts
     view:
       fields: [title, pubDatetime, draft, featured]
       sort: [pubDatetime]
