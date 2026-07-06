@@ -28,13 +28,13 @@ content:
         required: true
         options:
           time: true
-          format: yyyy-MM-dd'T'HH:mm:ss.SSS'Z'
+          format: yyyy-MM-dd'T'HH:mm:ssXXX
       - name: modDatetime
         label: Modified Date
         type: date
         options:
           time: true
-          format: yyyy-MM-dd'T'HH:mm:ss.SSS'Z'
+          format: yyyy-MM-dd'T'HH:mm:ssXXX
       - name: author
         label: Author
         type: string
