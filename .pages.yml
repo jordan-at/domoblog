@@ -28,13 +28,13 @@ content:
         required: true
         options:
           time: true
-          format: yyyy-MM-dd'T'HH:mm:ss.SSS'Z'
+          format: yyyy-MM-dd'T'HH:mm:ssXXX
       - name: modDatetime
         label: Modified Date
         type: date
         options:
           time: true
-          format: yyyy-MM-dd'T'HH:mm:ss.SSS'Z'
+          format: yyyy-MM-dd'T'HH:mm:ssXXX
       - name: author
         label: Author
         type: string
@@ -59,7 +59,14 @@ content:
         type: boolean
       - name: timezone
         label: Timezone
-        type: string
+        type: select
+        default: Australia/Brisbane
+        options:
+          values:
+            - value: Australia/Brisbane
+              label: Brisbane / Gold Coast (AEST)
+            - value: UTC
+              label: UTC
       - name: body
         label: Body
         type: rich-text
