@@ -51,9 +51,6 @@ content:
         type: string
         list: true
         default: [others]
-      - name: ogImage
-        label: OG Image
-        type: image
       - name: canonicalURL
         label: Canonical URL
         type: string
