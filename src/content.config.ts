@@ -5,13 +5,16 @@ import config from "@/config";
 
 export const BLOG_PATH = "src/content/posts";
 
+const AEST_OFFSET_MS = 10 * 60 * 60 * 1000; // Pages CMS writes local wall time labeled Z; recover true instant
+
+
 const posts = defineCollection({
   loader: glob({ pattern: "**/[^_]*.{md,mdx}", base: `./${BLOG_PATH}` }),
   schema: ({ image }) =>
     z.object({
       author: z.string().default(config.site.author),
-      pubDatetime: z.date(),
-      modDatetime: z.date().optional().nullable(),
+      pubDatetime: z.coerce.date().transform(d => new Date(d.getTime() - AEST_OFFSET_MS)),
+      modDatetime: z.coerce.date().transform(d => new Date(d.getTime() - AEST_OFFSET_MS)).optional().nullable(),
       title: z.string(),
       featured: z.boolean().optional(),
       draft: z.boolean().optional(),
