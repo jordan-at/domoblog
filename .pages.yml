@@ -1,0 +1,103 @@
+media:
+  input: public/images
+  output: /images
+
+content:
+  - name: posts
+    label: Posts
+    type: collection
+    path: src/content/posts
+    format: yaml-frontmatter
+    extension: md
+    subfolders: true
+    filename: "{primary}.md"
+    view:
+      primary: title
+      sort: pubDatetime
+      order: desc
+    fields:
+      - name: title
+        type: string
+        required: true
+
+      - name: description
+        type: text
+        required: true
+
+      - name: pubDatetime
+        type: date
+        required: true
+        options:
+          time: true
+
+      - name: modDatetime
+        type: date
+        required: false
+        options:
+          time: true
+
+      - name: author
+        type: string
+        required: false
+
+      - name: tags
+        type: string
+        list: true
+        required: false
+
+      - name: featured
+        type: boolean
+        required: false
+
+      - name: draft
+        type: boolean
+        required: false
+
+      - name: ogImage
+        type: string
+        required: false
+
+      - name: canonicalURL
+        type: string
+        required: false
+
+      - name: hideEditPost
+        type: boolean
+        required: false
+
+      - name: timezone
+        type: string
+        required: false
+
+      - name: body
+        type: rich-text
+        required: false
+
+  - name: pages
+    label: Pages
+    type: collection
+    path: src/content/pages
+    format: yaml-frontmatter
+    extension: md
+    subfolders: false
+    filename: "{primary}.md"
+    fields:
+      - name: title
+        type: string
+        required: true
+
+      - name: description
+        type: text
+        required: false
+
+      - name: ogImage
+        type: string
+        required: false
+
+      - name: canonicalURL
+        type: string
+        required: false
+
+      - name: body
+        type: rich-text
+        required: false
