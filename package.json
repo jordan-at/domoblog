@@ -2,6 +2,7 @@
   "name": "my-new-blog",
   "type": "module",
   "version": "6.1.0",
+  "packageManager": "pnpm@11.10.0",
   "engines": {
     "node": ">=22.12.0"
   },
@@ -45,6 +46,7 @@
     "prettier": "3.8.3",
     "prettier-plugin-astro": "0.14.1",
     "prettier-plugin-tailwindcss": "^0.8.0",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "wrangler": "^4.107.0"
   }
 }
