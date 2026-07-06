@@ -59,7 +59,14 @@ content:
         type: boolean
       - name: timezone
         label: Timezone
-        type: string
+        type: select
+        default: Australia/Brisbane
+        options:
+          values:
+            - value: Australia/Brisbane
+              label: Brisbane / Gold Coast (AEST)
+            - value: UTC
+              label: UTC
       - name: body
         label: Body
         type: rich-text
