@@ -35,7 +35,7 @@ const homePath = getRelativeLocaleUrl(locale, "");
   >
     <section id="hero" class="border-border border-b pt-8 pb-6">
       <h1 class="my-4 inline-block text-4xl font-bold sm:my-8 sm:text-5xl">
-        Mingalaba
+        Welcome
       </h1>
       <a
         target="_blank"
@@ -53,20 +53,43 @@ const homePath = getRelativeLocaleUrl(locale, "");
       </a>
 
       <p>
-        AstroPaper is a minimal, responsive, accessible and SEO-friendly Astro
-        blog theme. This theme follows best practices and provides accessibility
-        out of the box. Light and dark mode are supported by default. Moreover,
-        additional color schemes can also be configured.
+        I'm a Cloud & Data Engineer on the Gold Coast/Brisbane, specialising in
+        data platforms, modern workplace administration, and automation. My recent
+        work includes the end-to-end technical delivery of a national franchise
+        migration, and consulting on enterprise data platforms in Power BI and
+        MS Fabric.
       </p>
-      <p class="mt-2">
-        Read the blog posts or check
+      <p class="mt-4">
+        When I'm not doing that, I'm messing around with self-hosting, losing
+        chess games in openings I supposedly studied, or getting grumpy at AI
+        slop online and trying to find the parts that are actually useful.
+      </p>
+      <p class="mt-4">
+        I'm currently looking for full-time roles — check out my 
         <LinkButton
           class="hover:text-accent underline decoration-dashed underline-offset-4"
-          href="https://github.com/satnaing/astro-paper#readme"
+          href="https://jordanthompson.dev/posts"
+          >
+        posts here
+      </LinkButton>, or find me on
+        <LinkButton
+          class="hover:text-accent underline decoration-dashed underline-offset-4"
+          href="https://www.linkedin.com/in/jordanalexthompson/"
         >
-          README
-        </LinkButton> for more info.
+          LinkedIn
+        </LinkButton>.
       </p>
+
+      <p class="mt-4">
+        Website is built using 
+                <LinkButton
+          class="hover:text-accent underline decoration-dashed underline-offset-4"
+          href="https://github.com/satnaing/astro-paper"
+        >
+        AstroPaper
+      </LinkButton>, Pages CMS for posting & hosted/deployed with cloudflare.
+      </p>
+
       {
         socials.length > 0 && (
           <div class="mt-4 flex max-sm:flex-col sm:items-center">

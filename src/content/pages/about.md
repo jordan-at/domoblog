@@ -3,35 +3,34 @@ title: "About"
 description: "A bit about me and this blog."
 ---
 
-AstroPaper is a minimal, accessible and SEO-friendly blog theme built with [Astro](https://astro.build/) and [Tailwind CSS](https://tailwindcss.com/).
+ 
+I'm Jordan Thompson, a Cloud & Data Engineer based on the Gold Coast, Queensland. I work across the Microsoft ecosystem — data platforms, modern workplace administration, and automation — and this site is where I write up the problems I've solved and the things I'm learning along the way.
 
-![Astro Paper](@/assets/images/astropaper-og.jpg)
-
-AstroPaper provides a solid foundation for blogs, or even portfolios\_ with full markdown support, built-in dark mode, and a clean layout that works out-of-the-box.
-
-The blog posts in this theme also serve as guides, docs or example articles\_ making AstroPaper a flexible starting point for your next content-driven site.
-
-## Features
-
-AstroPaper comes with a set of useful features that make content publishing easy and effective:
-
-- SEO-friendly
-- Fast performance
-- Light & dark mode
-- Highly customizable
-- Organizable blog posts
-- Responsive & accessible
-- Static search with [PageFind](https://pagefind.app/)
-- Automatic social image generation
-
-and so much more.
-
-## Show your support
-
-If you like [AstroPaper](https://github.com/satnaing/astro-paper), consider giving it a star ⭐️.
-
-Found a bug 🐛 or have an improvement ✨ in mind? Feel free to open an [issue](https://github.com/satnaing/astro-paper/issues), submit a [pull request](https://github.com/satnaing/astro-paper/pulls) or start a [discussion](https://github.com/satnaing/astro-paper/discussions).
-
-If you find this theme helpful, you can also [sponsor me on GitHub](https://github.com/sponsors/satnaing) or [buy me a coffee](https://buymeacoffee.com/satnaing) to show your support — every penny counts.
-
-Kyay zuu! 🙏🏼
+![Photo of Me](../../assets/images/jordan.jpg)
+ 
+## What I do
+ 
+My background runs from helpdesk and MSP work through systems and cloud administration into where I am now: data platforms and large-scale migration engineering.
+ 
+Recent work includes:
+ 
+- **National franchise migration** — primary engineer for the end-to-end technical delivery of a multi-site franchise migration onto a 6,000+ user Microsoft 365 tenant, covering identity, data migration (SharePoint, OneDrive, Exchange), device provisioning at scale with Autopilot and Intune, telephony, and networking.
+- **Power BI & MS Fabric consulting** — designing and building enterprise reporting platforms and data pipelines, including a modular data mart supporting production reports across finance, compliance, safety, and project management.
+- **Modern workplace administration** — several years administering M365 environments end-to-end: Entra ID, Intune, Exchange, Conditional Access, and Defender XDR, with security work aligned to the Essential Eight framework.
+The thread through all of it is automation. I script to fix issues — PowerShell, Power Automate, and the Graph API do a lot of the heavy lifting in my work, whether that's bulk user provisioning during a migration or eliminating a manual process that shouldn't exist.
+ 
+## Background
+ 
+I hold a Bachelor of Information Technology from Griffith University, majoring in Networks and Cybersecurity, along with CompTIA Security+ and Microsoft PL-300 (Power BI Data Analyst) certifications.
+ 
+## Off the clock
+ 
+I run a Linux home server that self-hosts my media stack and game servers — a Docker setup that has taught me more about permissions, networking, and storage than any certification. This site is part of that same habit: built with Astro, deployed on Cloudflare Pages, and maintained by me.
+ 
+I'm also interested in cutting through the hype around AI to find the uses that actually hold up — expect the occasional post on that.
+ 
+And I play chess. Badly, but with conviction, and usually in openings I supposedly studied.
+ 
+## Get in touch
+ 
+The best place to find me is [LinkedIn](https://www.linkedin.com/in/jordanalexthompson). If you'd like to talk about data platforms, migrations, or why your Power BI matrix won't sort properly, I'm always up for it.
