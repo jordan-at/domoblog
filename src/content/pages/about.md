@@ -10,7 +10,7 @@ I'm Jordan Thompson, a Cloud & Data Engineer based on the Gold Coast, Queensland
  
 ## What I do
  
-My background runs from helpdesk and MSP work through systems and cloud administration into where I am now: data platforms and large-scale migration engineering.
+My background runs from helpdesk and MSP work through systems and cloud administration into where I am now.
  
 Recent work includes:
  
@@ -25,11 +25,8 @@ I hold a Bachelor of Information Technology from Griffith University, majoring i
  
 ## Off the clock
  
-I run a Linux home server that self-hosts my media stack and game servers — a Docker setup that has taught me more about permissions, networking, and storage than any certification. This site is part of that same habit: built with Astro, deployed on Cloudflare Pages, and maintained by me.
- 
-I'm also interested in cutting through the hype around AI to find the uses that actually hold up — expect the occasional post on that.
- 
-And I play chess. Badly, but with conviction, and usually in openings I supposedly studied.
+I like playing guitar, board games, and I run a Linux home server that self-hosts my media stack because I am sick of paying for all of these stupid streaming services. This site is part of that same habit: built with Astro, deployed on Cloudflare Pages, and maintained by me. I'm also interested in anything around AI, VR and tech in general. Been messing with computers since my first PC when I was 8 modding my minecraft to add cars, and will probably keep doing it until I am 100 (god willing).
+
  
 ## Get in touch
  
