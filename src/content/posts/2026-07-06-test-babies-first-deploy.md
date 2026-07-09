@@ -4,7 +4,7 @@ description: Test Post
 pubDatetime: 2026-07-07T00:01:00Z
 modDatetime: 2026-07-07T00:06:00Z
 author: Jordan!
-featured: true
+featured: false
 draft: false
 hideEditPost: false
 timezone: Australia/Brisbane
