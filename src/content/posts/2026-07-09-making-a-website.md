@@ -47,8 +47,8 @@ I run the command, it doesnt work.
 
 I google "what is npm".
 
-[!note]
-Astro is a package manager, and it installs dependencies required to run projects. 
+> [!note]  
+> NPM is a package manager, and it installs dependencies required to run projects. 
 
 I install npm, then it works. Yay!
 
