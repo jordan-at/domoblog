@@ -4,7 +4,7 @@ description: What is Astro & why I chose it
 pubDatetime: 2026-07-09T14:05:00Z
 modDatetime: 2026-07-09T14:05:00Z
 author: Jordan
-featured: false
+featured: true
 draft: false
 hideEditPost: false
 timezone: Australia/Brisbane
