@@ -8,6 +8,7 @@ featured: true
 draft: false
 tags:
   - Web
+  - Technical
 hideEditPost: false
 timezone: Australia/Brisbane
 ---
