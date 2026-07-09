@@ -6,6 +6,8 @@ modDatetime: 2026-07-09T14:05:00Z
 author: Jordan
 featured: true
 draft: false
+tags:
+  - Web
 hideEditPost: false
 timezone: Australia/Brisbane
 ---
