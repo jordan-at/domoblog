@@ -16,6 +16,7 @@ Spent today fixing some config on the site & playing with my LinkedIn account be
 I have inserted a thought provoking quote below to reflect on my experience.
 
 > I don't like LinkedIn
+
 *Me*
 
 Aight it's bedtime now. Peace!
