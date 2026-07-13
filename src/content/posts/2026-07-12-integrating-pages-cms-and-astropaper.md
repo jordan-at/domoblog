@@ -1,5 +1,5 @@
 ---
-title: Integrating Pages CMS and Astropaper
+title: "Deploying a website: Integrating Pages CMS and Astropaper"
 description: Easy way of adding blog posts to your website because I am not
   doing it manually
 pubDatetime: 2026-07-12T14:00:00Z
