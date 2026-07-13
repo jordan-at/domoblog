@@ -1,5 +1,5 @@
 ---
-title: Making A Website
+title: "Deploying a website: Astro!"
 description: What is Astro & why I chose it
 pubDatetime: 2026-07-09T14:05:00Z
 modDatetime: 2026-07-09T14:05:00Z
