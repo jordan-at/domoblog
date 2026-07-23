@@ -95,7 +95,7 @@ Pointing the model at Microsoft Learn as a live source changes the failure mode.
 - Use the citation trail as the actual study path. The answer is the index; the linked doc is the material.
 
 The failure mode to watch for is obvious in hindsight: it's very easy to feel productive reading generated summaries and never build the hands-on ability the exam actually tests. Retrieval solves accuracy, not competence. I'll report back on whether that discipline holds.  
-  
+
 I would be worried about this but it's pretty easy to spin up your own Azure tenant to mess around with, and the free account gives you 200$ credit off rip. Personally, I am playing around with a cheap instance of fabric with an entry SKU that I can pause whenever I am not using it.
 
 ## Where I've landed
