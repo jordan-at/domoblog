@@ -844,6 +844,32 @@
         background: var(--fg);
         color: #000;
       }
+      #speed {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-top: 6px;
+      }
+      #speed.off {
+        opacity: 0.35;
+        pointer-events: none;
+      }
+      .speed-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        font-size: 14px;
+        color: var(--fg-dim);
+      }
+      #speed-seg button {
+        padding: 6px 11px;
+        font-size: 13px;
+      }
+      #speed-range {
+        width: 100%;
+        accent-color: var(--accent);
+      }
       .hint {
         color: var(--fg-dim);
         font-size: 12.5px;
@@ -1098,10 +1124,33 @@
       <div class="seg" id="viz-seg">
         <button data-v="off">Off</button>
         <button data-v="ambient">Ambient</button>
+        <button data-v="lava">Lava</button>
+        <button data-v="aurora">Aurora</button>
+        <button data-v="drift">Drift</button>
+        <button data-v="silk">Silk</button>
+      </div>
+      <div id="speed">
+        <div class="speed-head">
+          <span>Speed</span>
+          <div class="seg" id="speed-seg">
+            <button data-s="0.5">Slow</button>
+            <button data-s="1">Medium</button>
+            <button data-s="2">Fast</button>
+          </div>
+        </div>
+        <input
+          type="range"
+          id="speed-range"
+          min="0"
+          max="100"
+          step="1"
+          aria-label="Visuals speed"
+        />
       </div>
       <p class="hint">
-        A slow glow that breathes while music is playing. Spotify doesn't share
-        the audio with other apps, so it can't follow the beat.
+        Colours come from the album art, and everything slows right down when
+        you pause. Spotify doesn't share the audio with other apps, so the
+        visuals move at their own pace rather than to the beat.
       </p>
       <h2>Account</h2>
       <button class="link" id="signout">Sign out</button>
@@ -1488,6 +1537,86 @@
         }
 
         // album-art colour → background
+        // artPalette: up to four distinct colours from the art, tuned bright
+        // enough to read on a dark background. The visuals read it.
+        let artPalette = null;
+        function hslToRgb(h, s, l) {
+          const k = n => (n + h / 30) % 12,
+            a = s * Math.min(l, 1 - l),
+            f = n => l - a * Math.max(-1, Math.min(k(n) - 3, 9 - k(n), 1));
+          return [f(0), f(8), f(4)].map(v => Math.round(v * 255));
+        }
+        function rgbToHsl(r, g, b) {
+          ((r /= 255), (g /= 255), (b /= 255));
+          const mx = Math.max(r, g, b),
+            mn = Math.min(r, g, b),
+            l = (mx + mn) / 2,
+            dl = mx - mn;
+          if (!dl) return [0, 0, l];
+          const s = dl / (1 - Math.abs(2 * l - 1));
+          let h =
+            mx === r
+              ? ((g - b) / dl) % 6
+              : mx === g
+                ? (b - r) / dl + 2
+                : (r - g) / dl + 4;
+          return [(h * 60 + 360) % 360, s, l];
+        }
+        function paletteFrom(d) {
+          // weight pixels into 12 hue buckets, favouring saturated mid-tones
+          const bins = Array.from({ length: 12 }, () => ({
+            w: 0,
+            r: 0,
+            g: 0,
+            b: 0,
+          }));
+          let lum = 0,
+            n = 0;
+          for (let i = 0; i < d.length; i += 4) {
+            const [h, s, l] = rgbToHsl(d[i], d[i + 1], d[i + 2]);
+            lum += l;
+            n++;
+            if (s < 0.18 || l < 0.1 || l > 0.92) continue;
+            const w = s * (1 - Math.abs(l - 0.5) * 1.4);
+            const bin = bins[Math.floor(h / 30) % 12];
+            bin.w += w;
+            bin.r += d[i] * w;
+            bin.g += d[i + 1] * w;
+            bin.b += d[i + 2] * w;
+          }
+          const top = bins
+            .filter(b => b.w > 0)
+            .sort((a, b) => b.w - a.w)
+            .filter((b, _, all) => b.w > all[0].w * 0.06)
+            .slice(0, 4)
+            .map(b => {
+              const [h, s, l] = rgbToHsl(b.r / b.w, b.g / b.w, b.b / b.w);
+              return [
+                h,
+                Math.min(0.9, Math.max(0.5, s)),
+                Math.min(0.64, Math.max(0.46, l)),
+              ];
+            });
+          if (!top.length) {
+            // black-and-white art: stay neutral, with a little depth
+            const l = Math.min(0.6, Math.max(0.42, lum / n));
+            return [0.9, 1.15, 0.75, 1.3].map(f =>
+              hslToRgb(220, 0.08, Math.min(0.75, l * f))
+            );
+          }
+          // fewer than four hues: fill with lighter/darker, slightly shifted versions
+          const shifts = [
+            [18, 0.1],
+            [-18, -0.1],
+            [36, 0.04],
+          ];
+          for (let i = 0; top.length < 4; i++) {
+            const [h, s, l] = top[0],
+              [dh, dl] = shifts[i];
+            top.push([(h + dh + 360) % 360, s, Math.min(0.7, l + dl)]);
+          }
+          return top.map(([h, s, l]) => hslToRgb(h, s, l));
+        }
         function pickColours(img) {
           try {
             const c = document.createElement("canvas");
@@ -1519,6 +1648,7 @@
                 best = [r, g, b];
               }
             }
+            artPalette = paletteFrom(d);
             const avg = [sr / n, sg / n, sb / n];
             const base = bestScore > 0.25 ? best : avg;
             const mix = (c, f) =>
@@ -2299,15 +2429,25 @@
 
         // ---------------- visuals ----------------
         // Spotify doesn't expose the audio stream (or audio analysis for new apps),
-        // so this is an ambient glow that breathes while something is playing.
-        // It doesn't claim to follow the beat.
+        // so these move at their own pace: faster while playing, slow when paused.
+        // Colours come from artPalette (album art). Speed is a user setting.
         (() => {
           const cv = $("viz");
           const cx = cv.getContext("2d");
           const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+          const MODES = ["off", "ambient", "lava", "aurora", "drift", "silk"];
           let mode = LS.get("np_viz");
-          if (mode !== "off" && mode !== "ambient")
-            mode = reduce ? "off" : "ambient";
+          if (!MODES.includes(mode)) mode = reduce ? "off" : "ambient";
+
+          // speed: 0.25x–3x on a log scale so the middle of the slider is 1x
+          const SMIN = 0.25,
+            SMAX = 3;
+          const toSlider = s =>
+            Math.round((Math.log(s / SMIN) / Math.log(SMAX / SMIN)) * 100);
+          const fromSlider = v => SMIN * (SMAX / SMIN) ** (v / 100);
+          let speed = parseFloat(LS.get("np_viz_speed"));
+          if (!(speed >= SMIN && speed <= SMAX)) speed = 1;
+
           let W = 0,
             H = 0,
             DPR = 1,
@@ -2315,8 +2455,27 @@
             accent = "#1ed760",
             accentT = 0;
           let e = 0,
+            vt = 0,
+            last = 0,
             running = false;
-          const t0 = performance.now();
+
+          // palette lerps towards the art so track changes fade rather than snap
+          const FALLBACK = [
+            [30, 215, 96],
+            [40, 170, 190],
+            [120, 90, 220],
+            [230, 120, 160],
+          ];
+          const pal = FALLBACK.map(c => c.slice());
+          const rgba = (c, a) =>
+            `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${a.toFixed(3)})`;
+          function lerpPalette(dt) {
+            const tgt = artPalette || FALLBACK,
+              k = 1 - Math.exp(-dt * 1.5);
+            for (let i = 0; i < 4; i++)
+              for (let j = 0; j < 3; j++)
+                pal[i][j] += (tgt[i % tgt.length][j] - pal[i][j]) * k;
+          }
 
           function measure() {
             const r = $("art-wrap").getBoundingClientRect();
@@ -2329,26 +2488,20 @@
             cv.width = Math.round(W * DPR);
             cv.height = Math.round(H * DPR);
             measure();
+            initDrift();
           }
           addEventListener("resize", resize);
           setInterval(measure, 1000);
 
-          function draw(now) {
-            if (now - accentT > 800) {
-              accentT = now;
+          // ---- ambient: the original breathing glow ----
+          function ambient(t) {
+            if (performance.now() - accentT > 800) {
+              accentT = performance.now();
               accent =
                 getComputedStyle(document.documentElement)
                   .getPropertyValue("--accent")
                   .trim() || accent;
             }
-            const t = (now - t0) / 1000;
-            const target = S?.is_playing
-              ? 0.32 + 0.16 * Math.sin(t * 1.3) ** 2 + 0.06 * Math.sin(t * 0.37)
-              : 0.08;
-            e += (target - e) * 0.04;
-
-            cx.setTransform(DPR, 0, 0, DPR, 0, 0);
-            cx.clearRect(0, 0, W, H);
             cx.globalCompositeOperation = "screen";
             const base = Math.min(W, H);
             for (let i = 0; i < 3; i++) {
@@ -2382,11 +2535,300 @@
               cx.fillStyle = g;
               cx.fillRect(x - r, y - r, r * 2, r * 2);
             }
+          }
+
+          // ---- lava: metaballs rising and sinking, rendered on a small grid ----
+          const lv = document.createElement("canvas");
+          const lx = lv.getContext("2d");
+          let lImg = null;
+          const BLOBS = Array.from({ length: 7 }, (_, i) => ({
+            x: 0.12 + ((i * 0.37) % 0.8),
+            r: 0.13 + ((i * 7) % 5) * 0.018,
+            w: 0.045 + ((i * 5) % 7) * 0.008,
+            p: i * 1.9,
+            c: i % 4,
+          }));
+          function lava(t) {
+            const long = Math.max(W, H),
+              gw = Math.max(24, Math.round((W / long) * 200)),
+              gh = Math.max(24, Math.round((H / long) * 200));
+            if (lv.width !== gw || lv.height !== gh) {
+              lv.width = gw;
+              lv.height = gh;
+              lImg = lx.createImageData(gw, gh);
+            }
+            const asp = W / H,
+              m = Math.min(1, asp); // scale radii by the short side
+            const pts = BLOBS.map(b => {
+              // a heat cycle: rise, pause near the top, sink back down
+              const ph = Math.sin(t * b.w + b.p);
+              return {
+                x: (b.x + 0.06 * Math.sin(t * b.w * 1.7 + b.p * 2)) * asp,
+                y: 0.5 - 0.5 * ph * Math.abs(ph) ** 0.3,
+                // surface radius squared; influence reaches twice as far
+                rr: (b.r * (0.85 + 0.15 * Math.sin(t * 0.21 + b.p))) ** 2,
+                c: pal[b.c],
+              };
+            });
+            for (const p of pts) p.rr *= m * m;
+            // warm pools at the bottom and top, like the wax at rest
+            const pb = 0.42 * m,
+              pt = 0.3 * m;
+            pts.push(
+              { x: asp * 0.5, y: 1 + pb * 0.45, rr: pb * pb, c: pal[0] },
+              { x: asp * 0.5, y: -pt * 0.55, rr: pt * pt, c: pal[2] }
+            );
+            for (const p of pts) p.R2 = p.rr * 4;
+            const d = lImg.data,
+              a0 = 0.55 + e * 0.3;
+            let o = 0;
+            for (let y = 0; y < gh; y++) {
+              const ny = (y + 0.5) / gh;
+              for (let x = 0; x < gw; x++) {
+                const nx = ((x + 0.5) / gw) * asp;
+                let sum = 0,
+                  r = 0,
+                  g = 0,
+                  b = 0;
+                for (let i = 0; i < pts.length; i++) {
+                  const p = pts[i],
+                    dx = nx - p.x,
+                    dy = ny - p.y,
+                    q = (dx * dx + dy * dy) / p.R2;
+                  if (q >= 1) continue;
+                  // compact falloff: blobs stay round until they touch, then fuse
+                  const f = (1 - q) * (1 - q);
+                  sum += f;
+                  r += p.c[0] * f;
+                  g += p.c[1] * f;
+                  b += p.c[2] * f;
+                }
+                if (sum < 0.02) {
+                  d[o + 3] = 0;
+                  o += 4;
+                  continue;
+                }
+                // wax: crisp edge at sum 0.56 (the surface), lit from inside
+                const edge = Math.min(1, Math.max(0, (sum - 0.5) / 0.1));
+                const halo = Math.min(1, sum / 0.5) * 0.12;
+                const lit =
+                  0.62 + 0.7 * Math.min(1, Math.max(0, sum - 0.56) * 1.6);
+                d[o] = Math.min(255, (r / sum) * lit);
+                d[o + 1] = Math.min(255, (g / sum) * lit);
+                d[o + 2] = Math.min(255, (b / sum) * lit);
+                d[o + 3] =
+                  255 * a0 * Math.max(edge * edge * (3 - 2 * edge), halo);
+                o += 4;
+              }
+            }
+            lx.putImageData(lImg, 0, 0);
+            cx.imageSmoothingEnabled = true;
+            cx.imageSmoothingQuality = "high";
+            cx.drawImage(lv, 0, 0, W, H);
+          }
+
+          // ---- aurora: curtains of light, drawn as thin columns ----
+          const AUR = [0, 1, 2];
+          function aurora(t) {
+            cx.globalCompositeOperation = "lighter";
+            const step = Math.max(3, Math.round(W / 220));
+            for (const k of AUR) {
+              const c = pal[k],
+                g = cx.createLinearGradient(0, 0, 0, -1);
+              g.addColorStop(0, rgba(c, 0));
+              g.addColorStop(0.04, rgba(c, 0.85));
+              g.addColorStop(0.18, rgba(c, 0.45));
+              g.addColorStop(1, rgba(c, 0));
+              cx.fillStyle = g;
+              const base = H * (0.62 + k * 0.11),
+                amp = H * 0.12,
+                ph = k * 2.4;
+              for (let x = -step; x < W + step; x += step) {
+                const u = x / W;
+                const y =
+                  base +
+                  amp * Math.sin(u * 3.1 + t * 0.23 + ph) +
+                  amp * 0.5 * Math.sin(u * 7.3 - t * 0.37 + ph * 1.7);
+                const h =
+                  H *
+                  (0.32 +
+                    0.16 * Math.sin(u * 5.1 + t * 0.31 + ph) +
+                    0.08 * Math.sin(u * 17 - t * 0.9));
+                const shimmer =
+                  0.55 +
+                  0.45 *
+                    Math.sin(u * 41 + t * 1.6 + ph) *
+                    Math.sin(u * 13 - t * 0.7);
+                cx.globalAlpha = Math.max(0, shimmer) * (0.32 + e * 0.38);
+                cx.setTransform(DPR, 0, 0, DPR * h, x * DPR, y * DPR);
+                cx.fillRect(0, -1, step + 0.6, 1.04);
+              }
+            }
+            cx.setTransform(DPR, 0, 0, DPR, 0, 0);
+          }
+
+          // ---- drift: glowing motes with short tails, steered by a slow flow field ----
+          let motes = [],
+            sprites = [],
+            spriteT = -1;
+          const TAIL = 14;
+          function initDrift() {
+            const n = Math.min(200, Math.round((W * H) / 4000));
+            motes = Array.from({ length: n }, (_, i) => ({
+              x: Math.random() * W,
+              y: Math.random() * H,
+              c: i % 4,
+              s: 0.6 + Math.random() * 1.1,
+              h: [],
+            }));
+          }
+          function makeSprites() {
+            sprites = pal.map(c => {
+              const s = document.createElement("canvas");
+              s.width = s.height = 32;
+              const x = s.getContext("2d"),
+                g = x.createRadialGradient(16, 16, 0, 16, 16, 16);
+              const hot = c.map(v => Math.min(255, v + 70));
+              g.addColorStop(0, rgba(hot, 1));
+              g.addColorStop(0.2, rgba(c, 0.8));
+              g.addColorStop(0.5, rgba(c, 0.18));
+              g.addColorStop(1, rgba(c, 0));
+              x.fillStyle = g;
+              x.fillRect(0, 0, 32, 32);
+              return s;
+            });
+          }
+          function drift(t, mdt) {
+            if (t - spriteT > 0.4 || !sprites.length) {
+              spriteT = t;
+              makeSprites();
+            }
+            cx.globalCompositeOperation = "lighter";
+            const sc = Math.min(W, H);
+            for (const p of motes) {
+              const a =
+                Math.PI *
+                (Math.sin((p.x / sc) * 2.1 + t * 0.13) +
+                  Math.cos((p.y / sc) * 2.7 - t * 0.11) +
+                  0.6 * Math.sin(((p.x + p.y) / sc) * 1.3 + t * 0.07));
+              const v = sc * 0.09 * p.s * mdt;
+              p.x += Math.cos(a) * v;
+              p.y += Math.sin(a) * v;
+              let wrapped = true;
+              if (p.x < -20) p.x += W + 40;
+              else if (p.x > W + 20) p.x -= W + 40;
+              else if (p.y < -20) p.y += H + 40;
+              else if (p.y > H + 20) p.y -= H + 40;
+              else wrapped = false;
+              if (wrapped) p.h.length = 0;
+              // record the path in steps of ~3px so tail length tracks speed
+              const lp = p.h[p.h.length - 1];
+              if (!lp || Math.hypot(p.x - lp[0], p.y - lp[1]) > 3) {
+                p.h.push([p.x, p.y]);
+                if (p.h.length > TAIL) p.h.shift();
+              }
+              const r0 = (4 + p.s * 4.5) * (0.9 + e * 0.3),
+                a0 = 0.3 + e * 0.28,
+                n = p.h.length;
+              for (let j = 0; j < n; j++) {
+                const k = (j + 1) / n,
+                  r = r0 * (0.35 + 0.65 * k);
+                cx.globalAlpha = a0 * k * k * 0.6;
+                cx.drawImage(
+                  sprites[p.c],
+                  p.h[j][0] - r,
+                  p.h[j][1] - r,
+                  r * 2,
+                  r * 2
+                );
+              }
+              cx.globalAlpha = a0;
+              cx.drawImage(sprites[p.c], p.x - r0, p.y - r0, r0 * 2, r0 * 2);
+            }
+          }
+
+          // ---- silk: wide translucent ribbons folding across the screen ----
+          function silk(t) {
+            cx.globalCompositeOperation = "screen";
+            const step = Math.max(6, Math.round(W / 140));
+            for (let k = 0; k < 4; k++) {
+              const ph = k * 1.7,
+                mid = H * (0.28 + k * 0.15),
+                amp = H * (0.14 + 0.04 * k),
+                th = Math.min(W, H) * (0.1 + 0.04 * ((k + 1) % 3));
+              const top = [],
+                bot = [];
+              for (let x = -step; x <= W + step; x += step) {
+                const u = x / W;
+                const y =
+                  mid +
+                  amp * Math.sin(u * 2.4 + t * 0.19 + ph) +
+                  amp * 0.35 * Math.sin(u * 5.7 - t * 0.29 + ph);
+                // the ribbon twists: thickness swings through zero and back
+                const tw = th * Math.sin(u * 3.3 - t * 0.17 + ph * 1.3);
+                top.push(x, y - tw / 2);
+                bot.push(x, y + tw / 2);
+              }
+              const g = cx.createLinearGradient(0, 0, W, 0);
+              g.addColorStop(0, rgba(pal[k], 0.05));
+              g.addColorStop(0.5, rgba(pal[(k + 1) % 4], 0.3 + e * 0.2));
+              g.addColorStop(1, rgba(pal[k], 0.08));
+              cx.globalAlpha = 1;
+              cx.fillStyle = g;
+              cx.beginPath();
+              cx.moveTo(top[0], top[1]);
+              for (let i = 2; i < top.length; i += 2)
+                cx.lineTo(top[i], top[i + 1]);
+              for (let i = bot.length - 2; i >= 0; i -= 2)
+                cx.lineTo(bot[i], bot[i + 1]);
+              cx.closePath();
+              cx.fill();
+              // a bright edge so it reads as fabric catching light
+              cx.strokeStyle = rgba(pal[(k + 1) % 4], 0.35 + e * 0.25);
+              cx.lineWidth = 1.2;
+              cx.beginPath();
+              cx.moveTo(top[0], top[1]);
+              for (let i = 2; i < top.length; i += 2)
+                cx.lineTo(top[i], top[i + 1]);
+              cx.stroke();
+            }
+          }
+
+          const RENDER = { ambient, lava, aurora, drift, silk };
+
+          function draw(now) {
+            const dt = Math.min(0.1, last ? (now - last) / 1000 : 0.016);
+            last = now;
+            const playing = !!S?.is_playing;
+            e += ((playing ? 1 : 0.15) - e) * (1 - Math.exp(-dt * 2));
+            // paused: keep drifting at a crawl rather than freezing
+            const mdt = dt * speed * (0.2 + 0.8 * e);
+            vt += mdt;
+            lerpPalette(dt);
+
+            cx.setTransform(DPR, 0, 0, DPR, 0, 0);
+            cx.globalCompositeOperation = "source-over";
+            cx.clearRect(0, 0, W, H);
+            if (mode === "ambient") {
+              // the original glow's own breathing curve, kept as it was
+              const target = playing
+                ? 0.32 +
+                  0.16 * Math.sin(vt * 1.3) ** 2 +
+                  0.06 * Math.sin(vt * 0.37)
+                : 0.08;
+              ambE += (target - ambE) * 0.04;
+              const save = e;
+              e = ambE;
+              ambient(vt);
+              e = save;
+            } else RENDER[mode](vt, mdt);
             cx.globalAlpha = 1;
             cx.globalCompositeOperation = "source-over";
-            $("art-wrap").style.transform =
-              `scale(${(1 + e * 0.008).toFixed(4)})`;
+            if (mode === "ambient")
+              $("art-wrap").style.transform =
+                `scale(${(1 + ambE * 0.008).toFixed(4)})`;
           }
+          let ambE = 0;
 
           function frame(now) {
             if (!running) return;
@@ -2395,7 +2837,14 @@
               !document.body.classList.contains("lib-open")
             )
               draw(now);
+            else last = 0;
             requestAnimationFrame(frame);
+          }
+          function clear() {
+            cx.setTransform(1, 0, 0, 1, 0, 0);
+            cx.globalCompositeOperation = "source-over";
+            cx.clearRect(0, 0, cv.width, cv.height);
+            $("art-wrap").style.transform = "";
           }
           function setMode(m) {
             mode = m;
@@ -2403,20 +2852,43 @@
             document
               .querySelectorAll("#viz-seg button")
               .forEach(b => b.classList.toggle("on", b.dataset.v === m));
-            if (m === "off") {
-              running = false;
-              cx.setTransform(1, 0, 0, 1, 0, 0);
-              cx.clearRect(0, 0, cv.width, cv.height);
-              $("art-wrap").style.transform = "";
-            } else if (!running) {
+            $("speed").classList.toggle("off", m === "off");
+            clear();
+            if (m === "off") running = false;
+            else if (!running) {
               running = true;
+              last = 0;
               resize();
               requestAnimationFrame(frame);
             }
           }
+          function setSpeed(s, fromRange) {
+            speed = Math.min(SMAX, Math.max(SMIN, s));
+            LS.set("np_viz_speed", speed.toFixed(2));
+            if (!fromRange) $("speed-range").value = toSlider(speed);
+            document
+              .querySelectorAll("#speed-seg button")
+              .forEach(b =>
+                b.classList.toggle(
+                  "on",
+                  Math.abs(Math.log(+b.dataset.s / speed)) < 0.06
+                )
+              );
+          }
           document
             .querySelectorAll("#viz-seg button")
             .forEach(b => (b.onclick = () => setMode(b.dataset.v)));
+          document
+            .querySelectorAll("#speed-seg button")
+            .forEach(b => (b.onclick = () => setSpeed(+b.dataset.s)));
+          $("speed-range").addEventListener("input", ev => {
+            let s = fromSlider(+ev.target.value);
+            // snap to the presets when close, so Medium is easy to land on
+            for (const p of [0.5, 1, 2])
+              if (Math.abs(Math.log(p / s)) < 0.05) s = p;
+            setSpeed(s, true);
+          });
+          setSpeed(speed);
           setMode(mode);
         })();
 
