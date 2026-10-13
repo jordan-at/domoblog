@@ -4,7 +4,7 @@ description: Run down of Spark & Fabric
 pubDatetime: 2026-07-27T16:11:00Z
 modDatetime: 2026-07-27T16:11:00Z
 author: Jordan
-featured: false
+featured: true
 draft: false
 hideEditPost: false
 timezone: Australia/Brisbane

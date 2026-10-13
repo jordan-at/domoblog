@@ -4,7 +4,7 @@ description: First blog post about my website. Hello!
 pubDatetime: 2026-07-07T00:12:00Z
 modDatetime: 2026-07-07T00:12:00Z
 author: Jordan
-featured: true
+featured: false
 draft: false
 hideEditPost: false
 timezone: Australia/Brisbane

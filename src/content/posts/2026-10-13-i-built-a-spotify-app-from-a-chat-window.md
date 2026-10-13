@@ -4,7 +4,7 @@ description: Spotify won't rotate its player on Android, so I asked Claude to bu
 pubDatetime: 2026-10-13T11:10:00Z
 modDatetime: 2026-10-13T11:10:00Z
 author: Jordan
-featured: false
+featured: true
 draft: false
 hideEditPost: false
 timezone: Australia/Brisbane
@@ -39,7 +39,9 @@ The only real hiccup was mine. Spotify threw a `redirect_uri: Not matching confi
 
 Once it was working I asked for more. Pick a playlist, and something that plays songs it thinks I'll like. Spotify shut off its recommendations endpoints for new developer apps a while back, so Claude built the mixes from my own data instead: top tracks over different time ranges, recently played, and a sample of my Liked Songs. That gives On Repeat, Heavy Rotation, a Rediscover mix of old favourites I haven't played lately, a Liked Shuffle, and a mix for each of the artists I've been playing most. It also fixed the portrait layout, which I'd said wasn't scaling well.
 
-Then I asked it to write this post and push that too. So, full disclosure, Claude wrote the first draft of what you're reading.
+Then I asked it to write this post and push that too. So, full disclosure, Claude wrote the first draft of what you're reading. I proofread it myself in the same chat window and told it what to change.
+
+I also asked for visuals that react to the music. That one didn't happen. The audio plays in Spotify's own app, Spotify doesn't share it with other apps, and the beat and tempo data it used to offer is switched off for new developer apps. Claude's first idea was to listen through the phone's mic, but I mostly use earbuds, so that was out. What I got instead is a slow ambient glow that breathes while music is playing, and it's upfront in the settings that it isn't following the beat.
 
 ## Why I think it's a big deal
 
