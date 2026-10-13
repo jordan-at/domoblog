@@ -395,6 +395,34 @@
         width: 20px;
         height: 20px;
       }
+      /* art only: cover centred and large, controls float over it and fade when idle */
+      body.art-only #player {
+        justify-content: center;
+      }
+      body.art-only #art-wrap {
+        height: min(92vh, 92vw);
+      }
+      body.art-only #side {
+        position: fixed;
+        z-index: 2;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: min(56vw, 560px);
+        padding: max(14px, env(safe-area-inset-top)) var(--pad)
+          max(14px, env(safe-area-inset-bottom)) 48px;
+        background: linear-gradient(
+          to left,
+          rgba(0, 0, 0, 0.82) 55%,
+          rgba(0, 0, 0, 0)
+        );
+        transition: opacity 0.5s;
+      }
+      body.art-only.idle #side {
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 1s;
+      }
       body.idle #topbar .icon-btn {
         opacity: 0;
         pointer-events: none;
@@ -659,6 +687,73 @@
         gap: 14px 12px;
         margin-bottom: 22px;
       }
+      .pin-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+      }
+      .link-sm {
+        font-size: 12px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+      .cover.spl {
+        background: linear-gradient(
+          140deg,
+          hsl(var(--h) 70% 52%),
+          hsl(calc(var(--h) + 50) 65% 30%)
+        );
+      }
+      .cover.pin-add {
+        place-items: center;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1.5px dashed var(--fg-faint);
+        box-shadow: none;
+        color: var(--fg-dim);
+      }
+      .cover.pin-add svg {
+        width: 34%;
+        height: 34%;
+      }
+      .card.removing .cover {
+        opacity: 0.55;
+      }
+      .pin-x {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+        font-size: 14px;
+        background: rgba(0, 0, 0, 0.45);
+      }
+      .pin-form {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        max-width: 460px;
+        margin: -8px 0 24px;
+      }
+      .pin-form select,
+      .pin-form input {
+        padding: 10px 14px;
+        border-radius: 10px;
+        border: 1px solid var(--fg-faint);
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--fg);
+        font: inherit;
+        font-size: 14px;
+        user-select: text;
+        -webkit-user-select: text;
+      }
+      .pin-form option {
+        background: #161618;
+      }
+      .pin-row {
+        display: flex;
+        gap: 8px;
+      }
       .card {
         text-align: left;
         display: flex;
@@ -808,6 +903,23 @@
           margin-left: auto;
         }
       }
+      @media (orientation: portrait) {
+        body.art-only #art-wrap {
+          width: min(100% - 8px, 70dvh);
+        }
+        body.art-only #side {
+          top: auto;
+          left: 0;
+          width: auto;
+          max-width: none;
+          padding: 64px 20px max(20px, env(safe-area-inset-bottom));
+          background: linear-gradient(
+            to top,
+            rgba(0, 0, 0, 0.85) 60%,
+            rgba(0, 0, 0, 0)
+          );
+        }
+      }
       @media (orientation: portrait) and (max-height: 640px) {
         #art-wrap {
           width: min(100%, 38dvh);
@@ -862,9 +974,9 @@
         font-size: 14px;
         color: var(--fg-dim);
       }
-      #speed-seg button {
-        padding: 6px 11px;
-        font-size: 13px;
+      #speed-val {
+        font-variant-numeric: tabular-nums;
+        color: var(--fg);
       }
       #speed-range {
         width: 100%;
@@ -1120,6 +1232,11 @@
       <div class="spacer"></div>
       <h2>Display</h2>
       <button class="link" id="toggle-clock">Hide clock</button>
+      <button class="link" id="toggle-artonly">Art only: off</button>
+      <p class="hint">
+        Art only centres a big cover and fades the controls away after a few
+        seconds. Tap the screen to bring them back.
+      </p>
       <h2>Visuals</h2>
       <div class="seg" id="viz-seg">
         <button data-v="off">Off</button>
@@ -1131,12 +1248,7 @@
       </div>
       <div id="speed">
         <div class="speed-head">
-          <span>Speed</span>
-          <div class="seg" id="speed-seg">
-            <button data-s="0.5">Slow</button>
-            <button data-s="1">Medium</button>
-            <button data-s="2">Fast</button>
-          </div>
+          <span>Speed</span><span id="speed-val">1.0×</span>
         </div>
         <input
           type="range"
@@ -1976,6 +2088,18 @@
           LS.set("np_clock", LS.get("np_clock") === "off" ? "on" : "off");
           updateClockBtn();
         };
+        function updateArtOnly() {
+          const on = LS.get("np_artonly") === "on";
+          document.body.classList.toggle("art-only", on);
+          $("toggle-artonly").textContent = on
+            ? "Art only: on"
+            : "Art only: off";
+        }
+        $("toggle-artonly").onclick = () => {
+          LS.set("np_artonly", LS.get("np_artonly") === "on" ? "off" : "on");
+          updateArtOnly();
+        };
+        updateArtOnly();
         const clock = () => {
           $("clock").textContent = new Date().toLocaleTimeString([], {
             hour: "numeric",
@@ -2265,7 +2389,145 @@
           return b;
         }
 
-        async function playBody(body, label) {
+        // Spotify's own playlists (Release Radar, Discover Weekly, Daily Mix…)
+        // can't be listed or read by personal developer apps, but they can still
+        // be played by ID. The ID stays the same each week, so a pasted link works.
+        const SPOTIFY_NAMES = [
+          "Release Radar",
+          "Discover Weekly",
+          "Daily Mix 1",
+          "Daily Mix 2",
+          "Daily Mix 3",
+          "Daily Mix 4",
+          "Daily Mix 5",
+          "Daily Mix 6",
+          "On Repeat",
+          "Repeat Rewind",
+        ];
+        function getPins() {
+          try {
+            const v = JSON.parse(LS.get("np_spl") || "[]");
+            return Array.isArray(v) ? v.filter(p => p && p.id && p.name) : [];
+          } catch {
+            return [];
+          }
+        }
+        const setPins = v => LS.set("np_spl", JSON.stringify(v));
+        function playlistId(text) {
+          const m = String(text || "")
+            .trim()
+            .match(/(?:playlist[/:])?([A-Za-z0-9]{22})(?:[?#/\s]|$)/);
+          return m ? m[1] : null;
+        }
+        const nameHue = n =>
+          [...n].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7);
+        let pinFormOpen = false,
+          pinEdit = false;
+        function renderPins(body, match, filtering) {
+          const pins = getPins().filter(p => match(p.name));
+          if (filtering && !pins.length) return;
+          const head = el("div", "lib-h pin-head");
+          head.appendChild(el("span", null, "From Spotify"));
+          if (pins.length) {
+            const ed = el("button", "link-sm", pinEdit ? "Done" : "Edit");
+            ed.onclick = () => {
+              pinEdit = !pinEdit;
+              renderLib();
+            };
+            head.appendChild(ed);
+          }
+          body.appendChild(head);
+          const grid = el("div", "grid");
+          pins.forEach(p => {
+            const c = cover([], p.name, nameHue(p.name));
+            c.classList.add("spl");
+            c.style.setProperty("--h", nameHue(p.name));
+            const b = card(c, p.name, "Spotify playlist", () =>
+              pinEdit
+                ? (setPins(getPins().filter(x => x.id !== p.id)), renderLib())
+                : playBody(
+                    { context_uri: "spotify:playlist:" + p.id },
+                    p.name,
+                    {
+                      blocked: true,
+                    }
+                  )
+            );
+            if (pinEdit) {
+              b.classList.add("removing");
+              c.appendChild(el("div", "pin-x", "Remove"));
+            }
+            grid.appendChild(b);
+          });
+          if (!pinEdit && !filtering) {
+            const add = el("div", "cover pin-add");
+            add.innerHTML =
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
+            grid.appendChild(
+              card(add, "Add playlist", "Paste a share link", () => {
+                pinFormOpen = !pinFormOpen;
+                renderLib();
+              })
+            );
+          }
+          body.appendChild(grid);
+          if (pinFormOpen && !pinEdit && !filtering)
+            body.appendChild(pinForm(getPins()));
+        }
+        function pinForm(pins) {
+          const f = el("div", "pin-form");
+          f.appendChild(
+            el(
+              "p",
+              "hint",
+              "Spotify doesn't let personal apps list its own playlists, so add them by link. In Spotify, open the playlist, tap ⋯ › Share › Copy link, then paste it here. You only need to do this once; the link keeps working as the playlist refreshes."
+            )
+          );
+          const sel = el("select");
+          SPOTIFY_NAMES.filter(n => !pins.some(p => p.name === n))
+            .concat("Other…")
+            .forEach(n => {
+              const o = el("option", null, n);
+              o.value = n;
+              sel.appendChild(o);
+            });
+          const other = el("input");
+          other.placeholder = "Name";
+          other.style.display = "none";
+          sel.onchange = () =>
+            (other.style.display = sel.value === "Other…" ? "" : "none");
+          const link = el("input");
+          link.placeholder = "https://open.spotify.com/playlist/…";
+          link.autocomplete = "off";
+          link.spellcheck = false;
+          const row = el("div", "pin-row");
+          const save = el("button", "pill", "Add");
+          const cancel = el("button", "pill ghost", "Cancel");
+          cancel.onclick = () => {
+            pinFormOpen = false;
+            renderLib();
+          };
+          save.onclick = () => {
+            const id = playlistId(link.value);
+            const name =
+              sel.value === "Other…" ? other.value.trim() : sel.value;
+            if (!id) return toast("That doesn't look like a playlist link");
+            if (!name) return toast("Give it a name");
+            setPins(
+              getPins()
+                .filter(p => p.id !== id)
+                .concat({ id, name })
+            );
+            pinFormOpen = false;
+            renderLib();
+            toast("Added " + name);
+          };
+          row.append(save, cancel);
+          f.append(sel, other, link, row);
+          return f;
+        }
+
+        async function playBody(body, label, opts = {}) {
           const dev = S?.device?.id || LS.get("np_dev");
           try {
             await api(
@@ -2278,7 +2540,14 @@
             toast("Playing " + label);
             setTimeout(poll, 600);
           } catch (e) {
-            if (e.status === 404 || e.reason === "NO_ACTIVE_DEVICE") {
+            if (
+              opts.blocked &&
+              e.status === 404 &&
+              e.reason !== "NO_ACTIVE_DEVICE" &&
+              S?.device
+            )
+              toast("Spotify wouldn't start " + label + " from this app");
+            else if (e.status === 404 || e.reason === "NO_ACTIVE_DEVICE") {
               toast("Pick a device to play on");
               openSheet();
             } else
@@ -2328,6 +2597,7 @@
 
           if (libTab === "mix") {
             const list = mixes.filter(m => match(m.title));
+            renderPins(body, match, !!q);
             if (!mixes.length) {
               body.appendChild(
                 el(
@@ -2885,26 +3155,15 @@
             speed = Math.min(SMAX, Math.max(SMIN, s));
             LS.set("np_viz_speed", speed.toFixed(2));
             if (!fromRange) $("speed-range").value = toSlider(speed);
-            document
-              .querySelectorAll("#speed-seg button")
-              .forEach(b =>
-                b.classList.toggle(
-                  "on",
-                  Math.abs(Math.log(+b.dataset.s / speed)) < 0.06
-                )
-              );
+            $("speed-val").textContent = speed.toFixed(1) + "×";
           }
           document
             .querySelectorAll("#viz-seg button")
             .forEach(b => (b.onclick = () => setMode(b.dataset.v)));
-          document
-            .querySelectorAll("#speed-seg button")
-            .forEach(b => (b.onclick = () => setSpeed(+b.dataset.s)));
           $("speed-range").addEventListener("input", ev => {
             let s = fromSlider(+ev.target.value);
-            // snap to the presets when close, so Medium is easy to land on
-            for (const p of [0.5, 1, 2])
-              if (Math.abs(Math.log(p / s)) < 0.05) s = p;
+            // snap to 1× when close, so the default is easy to find again
+            if (Math.abs(Math.log(s)) < 0.05) s = 1;
             setSpeed(s, true);
           });
           setSpeed(speed);

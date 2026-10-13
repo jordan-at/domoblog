@@ -1,5 +1,5 @@
 // App-shell cache only. Spotify API and image requests always go to the network.
-const CACHE = "nowplaying-v6";
+const CACHE = "nowplaying-v7";
 const SHELL = [
   "./",
   "index.html",
