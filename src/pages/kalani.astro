@@ -1,0 +1,63 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import config from "@/config";
+---
+
+<Layout
+  title={`Kalani is smelly | ${config.site.title}`}
+  description="A public service announcement."
+>
+  <meta slot="head" name="robots" content="noindex" />
+  <Header />
+
+  <main
+    id="main-content"
+    class="app-layout flex flex-1 items-center justify-center"
+  >
+    <div class="mb-14 flex flex-col items-center justify-center gap-6 text-center">
+      <h1 class="text-accent text-5xl font-bold sm:text-7xl">
+        Kalani is smelly
+      </h1>
+
+      <figure
+        class="border-accent grid aspect-square w-full max-w-md place-items-center overflow-hidden rounded-lg border-2"
+      >
+        <span id="dog-status">fetching dog...</span>
+        <img id="dog-img" alt="A random dog" class="hidden h-full w-full object-cover" />
+      </figure>
+
+      <p class="opacity-80">Refresh for a new dog. Kalani stays smelly.</p>
+    </div>
+  </main>
+
+  <Footer />
+</Layout>
+
+<script>
+  // Fetched in the browser so the dog changes on every load,
+  // even though the site is statically built.
+  async function loadDog() {
+    const img = document.getElementById("dog-img") as HTMLImageElement | null;
+    const status = document.getElementById("dog-status");
+    if (!img || !status) return;
+
+    try {
+      const res = await fetch("https://dog.ceo/api/breeds/image/random", {
+        cache: "no-store",
+      });
+      const data = await res.json();
+      img.onload = () => {
+        status.remove();
+        img.classList.remove("hidden");
+      };
+      img.src = data.message;
+    } catch {
+      status.textContent = "the dog ran away (couldn't load one)";
+    }
+  }
+
+  // Runs on full loads and on client-side navigation (ClientRouter).
+  document.addEventListener("astro:page-load", loadDog);
+</script>
