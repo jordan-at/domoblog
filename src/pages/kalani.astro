@@ -12,52 +12,295 @@ import config from "@/config";
   <meta slot="head" name="robots" content="noindex" />
   <Header />
 
-  <main
-    id="main-content"
-    class="app-layout flex flex-1 items-center justify-center"
-  >
-    <div class="mb-14 flex flex-col items-center justify-center gap-6 text-center">
-      <h1 class="text-accent text-5xl font-bold sm:text-7xl">
-        Kalani is smelly
-      </h1>
+  <main id="main-content" class="app-layout flex flex-1 flex-col items-center">
+    <div class="flex w-full flex-col items-center gap-6 py-10 text-center">
+      <h1 class="text-accent text-5xl font-bold sm:text-7xl">Kalani is smelly</h1>
+      <p class="opacity-80">Open the Kalani Smell Case. Every dog is a K.</p>
 
-      <figure
-        class="border-accent grid aspect-square w-full max-w-md place-items-center overflow-hidden rounded-lg border-2"
-      >
-        <span id="dog-status">fetching dog...</span>
-        <img id="dog-img" alt="A random dog" class="hidden h-full w-full object-cover" />
-      </figure>
+      <div class="case-wrap w-full">
+        <div class="reel" id="reel">
+          <div class="marker"></div>
+          <div class="strip" id="strip"></div>
+        </div>
+      </div>
 
-      <p class="opacity-80">Refresh for a new dog. Kalani stays smelly.</p>
+      <button id="open-btn" class="open-btn" type="button">Open case</button>
+      <p id="case-status" class="text-sm opacity-70">loading dogs...</p>
+
+      <div id="result" class="result hidden">
+        <div class="result-card" id="result-card">
+          <img id="result-img" alt="The dog you unboxed" />
+          <div class="result-meta">
+            <span id="result-rarity" class="rarity-label"></span>
+            <h2 id="result-name" class="text-3xl font-bold"></h2>
+            <span id="result-wear" class="opacity-80"></span>
+          </div>
+        </div>
+      </div>
+
+      <p class="text-xs opacity-50">Refresh or open again for a new dog. Kalani stays smelly.</p>
     </div>
   </main>
 
   <Footer />
 </Layout>
 
-<script>
-  // Fetched in the browser so the dog changes on every load,
-  // even though the site is statically built.
-  async function loadDog() {
-    const img = document.getElementById("dog-img") as HTMLImageElement | null;
-    const status = document.getElementById("dog-status");
-    if (!img || !status) return;
+<style>
+  .case-wrap { max-width: 900px; }
+  .reel {
+    position: relative;
+    overflow: hidden;
+    height: 190px;
+    border: 2px solid var(--accent);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.35);
+  }
+  .marker {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    transform: translateX(-50%);
+    background: #f5c518;
+    box-shadow: 0 0 12px #f5c518;
+    z-index: 2;
+  }
+  .strip {
+    display: flex;
+    gap: 6px;
+    height: 100%;
+    padding: 10px 0;
+    box-sizing: border-box;
+    will-change: transform;
+  }
+  :global(.item) {
+    flex: 0 0 150px;
+    display: flex;
+    flex-direction: column;
+    border-radius: 6px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.05);
+    border-bottom: 5px solid var(--rc);
+    box-shadow: inset 0 -40px 40px -30px var(--rc);
+  }
+  :global(.item img) {
+    width: 100%;
+    height: 125px;
+    object-fit: cover;
+    background: #111;
+  }
+  :global(.item span) {
+    font-size: 0.8rem;
+    padding: 4px 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .open-btn {
+    padding: 0.8rem 2.5rem;
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border-radius: 6px;
+    background: var(--accent);
+    color: var(--accent-foreground);
+    cursor: pointer;
+    transition: transform 0.1s, opacity 0.2s;
+  }
+  .open-btn:active { transform: scale(0.97); }
+  .open-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .result-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem;
+    border-radius: 10px;
+    border: 3px solid var(--rc);
+    box-shadow: 0 0 40px -5px var(--rc);
+    animation: pop 0.4s ease-out;
+    max-width: 420px;
+  }
+  .result-card img {
+    width: 100%;
+    max-height: 380px;
+    object-fit: cover;
+    border-radius: 6px;
+  }
+  .result-meta { display: flex; flex-direction: column; gap: 0.25rem; }
+  .rarity-label {
+    color: var(--rc);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.85rem;
+  }
+  @keyframes pop {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+</style>
 
+<script>
+  const NAMES = [
+    "Kevin", "Kobe", "Kiki", "Kona", "Koda", "Kaiser", "Kipper", "Kenny",
+    "Kahlua", "Kimchi", "Kiwi", "Kodiak", "Kingsley", "Klaus", "Kettle",
+    "Kazoo", "Ketchup", "Krumpet", "Kernel", "Koala", "Kumquat", "Karen",
+    "Kirk", "Kuma", "Kaya", "Kenji", "Kibble", "Kebab", "Kransky",
+    "Kookaburra", "Kipling", "Kaboom", "Kahuna", "Karl", "Kombucha", "Kopi",
+    "Kevin Jr.", "Kumara", "Kelpie", "Krusty",
+  ];
+
+  // CS-style odds
+  const RARITIES = [
+    { name: "Mil-Spec", color: "#4b69ff", weight: 79.92 },
+    { name: "Restricted", color: "#8847ff", weight: 15.98 },
+    { name: "Classified", color: "#d32ce6", weight: 3.2 },
+    { name: "Covert", color: "#eb4b4b", weight: 0.64 },
+    { name: "★ Exceedingly Rare", color: "#e4ae39", weight: 0.26 },
+  ];
+  const GOLD_NAMES = ["★ King Kong Kalani", "★ Karambit Kevin", "★ Knight Koda"];
+
+  const WEARS = [
+    "Factory Fresh", "Minimal Wash", "Field-Sniffed", "Well-Rolled", "Battle-Stinky",
+  ];
+
+  const ITEM_COUNT = 55;
+  const WIN_INDEX = 45;
+  const ITEM_W = 150;
+  const GAP = 6;
+  const SPIN_MS = 6500;
+
+  const pick = <T,>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)];
+
+  function rollRarity() {
+    const total = RARITIES.reduce((s, r) => s + r.weight, 0);
+    let n = Math.random() * total;
+    for (const r of RARITIES) {
+      if ((n -= r.weight) <= 0) return r;
+    }
+    return RARITIES[0];
+  }
+
+  function makeDrop(img: string) {
+    const rarity = rollRarity();
+    const name = rarity.color === "#e4ae39" ? pick(GOLD_NAMES) : pick(NAMES);
+    return { img, rarity, name, wear: pick(WEARS) };
+  }
+
+  let audio: AudioContext | null = null;
+  function tick() {
     try {
-      const res = await fetch("https://dog.ceo/api/breeds/image/random", {
-        cache: "no-store",
-      });
-      const data = await res.json();
-      img.onload = () => {
-        status.remove();
-        img.classList.remove("hidden");
-      };
-      img.src = data.message;
+      audio ??= new AudioContext();
+      const o = audio.createOscillator();
+      const g = audio.createGain();
+      o.frequency.value = 900;
+      g.gain.setValueAtTime(0.05, audio.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + 0.04);
+      o.connect(g).connect(audio.destination);
+      o.start();
+      o.stop(audio.currentTime + 0.05);
     } catch {
-      status.textContent = "the dog ran away (couldn't load one)";
+      /* no sound, no problem */
     }
   }
 
-  // Runs on full loads and on client-side navigation (ClientRouter).
-  document.addEventListener("astro:page-load", loadDog);
+  async function fetchDogs(n: number): Promise<string[]> {
+    const res = await fetch(`https://dog.ceo/api/breeds/image/random/50`, {
+      cache: "no-store",
+    });
+    const data = await res.json();
+    const imgs: string[] = data.message;
+    while (imgs.length < n) imgs.push(pick(imgs));
+    return imgs.slice(0, n);
+  }
+
+  function initCase() {
+    const strip = document.getElementById("strip");
+    const reel = document.getElementById("reel");
+    const btn = document.getElementById("open-btn") as HTMLButtonElement | null;
+    const status = document.getElementById("case-status");
+    const result = document.getElementById("result");
+    if (!strip || !reel || !btn || !status || !result) return;
+    if (btn.dataset.bound) return;
+    btn.dataset.bound = "1";
+
+    let drops: ReturnType<typeof makeDrop>[] = [];
+
+    async function load() {
+      btn!.disabled = true;
+      status!.textContent = "loading dogs...";
+      try {
+        const imgs = await fetchDogs(ITEM_COUNT);
+        drops = imgs.map(makeDrop);
+        strip!.style.transition = "none";
+        strip!.style.transform = "translateX(0)";
+        strip!.innerHTML = drops
+          .map(
+            (d) =>
+              `<div class="item" style="--rc:${d.rarity.color}"><img src="${d.img}" alt="" loading="eager" /><span>${d.name}</span></div>`
+          )
+          .join("");
+        btn!.disabled = false;
+        status!.textContent = "1 case available";
+      } catch {
+        status!.textContent = "the dogs ran away (couldn't load). Refresh to try again.";
+      }
+    }
+
+    function spin() {
+      btn!.disabled = true;
+      result!.classList.add("hidden");
+      status!.textContent = "opening...";
+
+      const step = ITEM_W + GAP;
+      const centre = reel!.clientWidth / 2;
+      const jitter = (Math.random() - 0.5) * (ITEM_W - 20);
+      const target = WIN_INDEX * step + ITEM_W / 2 + jitter - centre;
+
+      void strip!.offsetWidth; // flush
+      strip!.style.transition = `transform ${SPIN_MS}ms cubic-bezier(0.08, 0.6, 0.12, 1)`;
+      strip!.style.transform = `translateX(-${target}px)`;
+
+      let last = -1;
+      const start = performance.now();
+      const frame = (now: number) => {
+        const m = new DOMMatrixReadOnly(getComputedStyle(strip!).transform);
+        const idx = Math.floor((-m.m41 + centre) / step);
+        if (idx !== last) {
+          last = idx;
+          tick();
+        }
+        if (now - start < SPIN_MS) requestAnimationFrame(frame);
+      };
+      requestAnimationFrame(frame);
+
+      setTimeout(() => reveal(drops[WIN_INDEX]), SPIN_MS + 150);
+    }
+
+    function reveal(d: ReturnType<typeof makeDrop>) {
+      const card = document.getElementById("result-card")!;
+      card.style.setProperty("--rc", d.rarity.color);
+      (document.getElementById("result-img") as HTMLImageElement).src = d.img;
+      document.getElementById("result-rarity")!.textContent = d.rarity.name;
+      document.getElementById("result-name")!.textContent = d.name;
+      document.getElementById("result-wear")!.textContent = d.wear;
+      result!.classList.remove("hidden");
+      btn!.textContent = "Open another";
+      status!.textContent = "";
+      btn!.onclick = async () => {
+        result!.classList.add("hidden");
+        await load();
+        spin();
+      };
+      btn!.disabled = false;
+    }
+
+    btn.onclick = spin;
+    load();
+  }
+
+  document.addEventListener("astro:page-load", initCase);
 </script>
