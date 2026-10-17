@@ -1,0 +1,429 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import config from "@/config";
+
+const GUY_FACTS = [
+  "Guy Gardner first showed up in Green Lantern #59 back in 1968, created by John Broome and Gil Kane.",
+  "When Abin Sur's ring went looking for a new owner, Guy was a strong pick. Hal Jordan got it mostly because he was closer.",
+  "That makes Guy the official backup Green Lantern of Earth. He has never fully let this go.",
+  "The bowl haircut is his trademark. Nobody else would dare.",
+  "In Justice League International (1987), Guy mouthed off to Batman and got knocked out with a single punch. Fans still bring it up.",
+  "For a while in the 90s Guy swapped his green ring for Sinestro's yellow one.",
+  'Later he found out he was part Vuldarian, an alien race, and fought as "Warrior" with shape-changing powers.',
+  "Guy ran a superhero-themed sports bar called Warriors.",
+  "He has also been a Red Lantern, powered by rage. Which, honestly, tracks.",
+  "Guy has a brother named Mace who is a cop.",
+  "Nathan Fillion played Guy in the 2025 Superman movie, then again in HBO's Lanterns in 2026.",
+];
+
+const LANTERN_FACTS = [
+  "The first Green Lantern was Alan Scott in 1940. His ring ran on magic and his weakness was wood.",
+  "Hal Jordan, a test pilot, took over the name in 1959 in Showcase #22.",
+  "Classic power rings need recharging from a lantern-shaped power battery about once every 24 hours.",
+  "The Green Lantern Corps is run by the Guardians of the Universe from the planet Oa.",
+  "The universe is split into 3,600 sectors. Earth sits in Sector 2814, which has a lot of Lanterns.",
+  "John Stewart, an architect, debuted in 1971. Lots of people know him best from the Justice League cartoon.",
+  "Kyle Rayner, an artist, got the ring in 1994 and was for a while the only Green Lantern left.",
+  "Jessica Cruz and Simon Baz are Earth Lanterns too, and once had to share a single power battery.",
+  "One Green Lantern, Mogo, is an entire living planet.",
+  "Ch'p is a Green Lantern who looks a lot like a chipmunk.",
+  "Green rings run on willpower. Other colours run on other emotions: yellow is fear, red is rage, blue is hope.",
+  "HBO's Lanterns premiered in August 2026 with Kyle Chandler as Hal and Aaron Pierre as John Stewart.",
+];
+
+const SPECTRUM = [
+  { name: "Rage", c: "#e23b3b" },
+  { name: "Greed", c: "#f08a24" },
+  { name: "Fear", c: "#f5c518" },
+  { name: "Willpower", c: "#39e75f" },
+  { name: "Hope", c: "#3b8bff" },
+  { name: "Compassion", c: "#4b3bbf" },
+  { name: "Love", c: "#b048e8" },
+];
+
+const RANKING = [
+  { name: "Guy Gardner", note: "Obviously. Ask him." },
+  { name: "John Stewart", note: "Builds things properly." },
+  { name: "Hal Jordan", note: "Got the ring by being closer." },
+  { name: "Kyle Rayner", note: "Best constructs, fair enough." },
+  { name: "Mogo", note: "Is a planet." },
+];
+---
+
+<Layout
+  title={`Mason's Green Lantern Zone | ${config.site.title}`}
+  description="Sector 2814 has a new member."
+>
+  <meta slot="head" name="robots" content="noindex" />
+  <Header />
+
+  <main
+    id="main-content"
+    class="app-layout gl flex flex-1 flex-col items-center"
+  >
+    <div class="flex w-full flex-col items-center gap-10 py-10 text-center">
+      <section class="flex flex-col items-center gap-3">
+        <p class="tag">Sector 2814 · Member file</p>
+        <h1 class="glow text-5xl font-bold sm:text-7xl">
+          Mason's Green Lantern Zone
+        </h1>
+        <p class="opacity-80">Fueled by willpower. Approved by Guy Gardner.</p>
+      </section>
+
+      <section
+        class="panel charge-panel w-full"
+        id="charge-panel"
+        data-facts={JSON.stringify({ guy: GUY_FACTS, gl: LANTERN_FACTS })}
+      >
+        <h2 class="text-2xl font-bold">Charge your ring</h2>
+        <p class="text-sm opacity-70">
+          Hold the button to fill it up. A full charge unlocks a fact.
+        </p>
+        <div class="meter" aria-hidden="true">
+          <div class="fill" id="fill"></div>
+        </div>
+        <p id="pct" class="pct">0%</p>
+        <button id="charge-btn" class="charge-btn" type="button"
+          >Hold to charge</button
+        >
+        <div id="fact-out" class="fact-out hidden" aria-live="polite">
+          <span id="fact-kind" class="tag"></span>
+          <p id="fact-text"></p>
+        </div>
+        <p id="count" class="text-xs opacity-50"></p>
+      </section>
+
+      <section class="w-full">
+        <h2 class="mb-4 text-3xl font-bold">The Guy Gardner File</h2>
+        <ol class="guy-list">
+          {
+            GUY_FACTS.map((f, i) => (
+              <li class="panel">
+                <span class="num">{String(i + 1).padStart(2, "0")}</span>
+                <p>{f}</p>
+              </li>
+            ))
+          }
+        </ol>
+      </section>
+
+      <section class="w-full">
+        <h2 class="mb-4 text-3xl font-bold">Official Lantern Rankings</h2>
+        <p class="mb-4 text-sm opacity-70">
+          Totally unbiased. Peer reviewed by Guy.
+        </p>
+        <ol class="rank">
+          {
+            RANKING.map((r, i) => (
+              <li class={i === 0 ? "panel first" : "panel"}>
+                <span class="num">#{i + 1}</span>
+                <strong>{r.name}</strong>
+                <span class="opacity-70">{r.note}</span>
+              </li>
+            ))
+          }
+        </ol>
+      </section>
+
+      <section class="w-full">
+        <h2 class="mb-4 text-3xl font-bold">The Emotional Spectrum</h2>
+        <div class="spectrum">
+          {
+            SPECTRUM.map(s => (
+              <div class="band" style={`--bc:${s.c}`}>
+                <span>{s.name}</span>
+              </div>
+            ))
+          }
+        </div>
+        <p class="mt-3 text-sm opacity-70">
+          Green sits right in the middle. That's why it's the best one.
+        </p>
+      </section>
+
+      <p class="text-xs opacity-50">
+        In brightest day... you know the rest, Mason.
+      </p>
+    </div>
+  </main>
+
+  <Footer />
+</Layout>
+
+<style>
+  .gl {
+    --gl: #39e75f;
+    --gl-dim: rgba(57, 231, 95, 0.15);
+  }
+  .glow {
+    color: var(--gl);
+    text-shadow:
+      0 0 12px rgba(57, 231, 95, 0.7),
+      0 0 36px rgba(57, 231, 95, 0.35);
+  }
+  .tag {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gl);
+  }
+  .panel {
+    border: 1px solid rgba(57, 231, 95, 0.45);
+    border-radius: 10px;
+    background: rgba(57, 231, 95, 0.05);
+    box-shadow: inset 0 0 24px -12px var(--gl);
+  }
+  .charge-panel {
+    max-width: 560px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.9rem;
+    padding: 1.5rem 1rem;
+  }
+  .meter {
+    width: 100%;
+    height: 26px;
+    border: 2px solid var(--gl);
+    border-radius: 999px;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.35);
+  }
+  .fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #1f9e3d, var(--gl));
+    box-shadow: 0 0 18px var(--gl);
+  }
+  .pct {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    color: var(--gl);
+  }
+  .charge-btn {
+    padding: 0.8rem 2.2rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border-radius: 6px;
+    background: var(--gl);
+    color: #04140a;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+    transition:
+      transform 0.1s,
+      box-shadow 0.2s;
+  }
+  .charge-btn.held {
+    transform: scale(0.97);
+    box-shadow: 0 0 30px var(--gl);
+  }
+  .fact-out {
+    width: 100%;
+    padding: 1rem;
+    border-radius: 8px;
+    border: 2px solid var(--gl);
+    box-shadow: 0 0 30px -6px var(--gl);
+    animation: pop 0.35s ease-out;
+    text-align: left;
+  }
+  .fact-out p {
+    margin-top: 0.35rem;
+  }
+  .guy-list,
+  .rank {
+    display: grid;
+    gap: 0.75rem;
+    max-width: 760px;
+    margin: 0 auto;
+    text-align: left;
+  }
+  .guy-list li,
+  .rank li {
+    display: flex;
+    gap: 0.9rem;
+    align-items: baseline;
+    padding: 0.85rem 1rem;
+  }
+  .rank li {
+    flex-wrap: wrap;
+  }
+  .num {
+    flex: 0 0 auto;
+    font-weight: 700;
+    color: var(--gl);
+    font-variant-numeric: tabular-nums;
+  }
+  .rank .first {
+    border-width: 2px;
+    box-shadow: 0 0 28px -6px var(--gl);
+  }
+  .spectrum {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 0.5rem;
+    max-width: 860px;
+    margin: 0 auto;
+  }
+  @media (min-width: 640px) {
+    .spectrum {
+      grid-template-columns: repeat(7, 1fr);
+    }
+    .band {
+      font-size: 0.85rem;
+    }
+  }
+  .band {
+    padding: 1.1rem 0.5rem;
+    border-radius: 8px;
+    font-weight: 700;
+    background: color-mix(in srgb, var(--bc) 22%, transparent);
+    border: 2px solid var(--bc);
+    color: var(--bc);
+  }
+  @keyframes pop {
+    from {
+      transform: scale(0.9);
+      opacity: 0;
+    }
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+</style>
+
+<script>
+  const CHARGE_MS = 1600;
+
+  function initCharge() {
+    const btn = document.getElementById(
+      "charge-btn"
+    ) as HTMLButtonElement | null;
+    const fill = document.getElementById("fill");
+    const pct = document.getElementById("pct");
+    const out = document.getElementById("fact-out");
+    const kind = document.getElementById("fact-kind");
+    const text = document.getElementById("fact-text");
+    const count = document.getElementById("count");
+    if (!btn || !fill || !pct || !out || !kind || !text || !count) return;
+    if (btn.dataset.bound) return;
+    btn.dataset.bound = "1";
+
+    const facts = JSON.parse(
+      document.getElementById("charge-panel")?.dataset.facts ??
+        '{"guy":[],"gl":[]}'
+    ) as { guy: string[]; gl: string[] };
+    const pool = [
+      ...facts.guy.map(f => ({ k: "Guy Gardner fact", f })),
+      ...facts.gl.map(f => ({ k: "Lantern fact", f })),
+    ];
+    let deck: typeof pool = [];
+    let charges = 0;
+    let level = 0;
+    let holding = false;
+    let last = 0;
+    let raf = 0;
+
+    let audio: AudioContext | null = null;
+    let osc: OscillatorNode | null = null;
+    let gain: GainNode | null = null;
+
+    function hum(on: boolean) {
+      try {
+        if (on) {
+          audio ??= new AudioContext();
+          osc = audio.createOscillator();
+          gain = audio.createGain();
+          osc.type = "sawtooth";
+          gain.gain.value = 0.03;
+          osc.connect(gain).connect(audio.destination);
+          osc.start();
+        } else if (osc) {
+          osc.stop();
+          osc = null;
+        }
+      } catch {
+        /* silent ring is still a ring */
+      }
+    }
+
+    function draw() {
+      fill!.style.width = `${level * 100}%`;
+      pct!.textContent = `${Math.round(level * 100)}%`;
+      if (osc && audio)
+        osc.frequency.setValueAtTime(110 + level * 330, audio.currentTime);
+    }
+
+    function nextFact() {
+      if (deck.length === 0) deck = [...pool].sort(() => Math.random() - 0.5);
+      return deck.pop()!;
+    }
+
+    function loop(now: number) {
+      const dt = now - last;
+      last = now;
+      level = holding
+        ? Math.min(1, level + dt / CHARGE_MS)
+        : Math.max(0, level - dt / (CHARGE_MS / 2));
+      draw();
+      if (level >= 1) {
+        release(true);
+        const { k, f } = nextFact();
+        kind!.textContent = k;
+        text!.textContent = f;
+        out!.classList.remove("hidden");
+        out!.style.animation = "none";
+        void out!.offsetWidth;
+        out!.style.animation = "";
+        charges++;
+        count!.textContent = `Charges today: ${charges}`;
+        btn!.textContent = "Charge again";
+        return;
+      }
+      if (holding || level > 0) raf = requestAnimationFrame(loop);
+    }
+
+    function press(e: Event) {
+      e.preventDefault();
+      if (holding) return;
+      holding = true;
+      btn!.classList.add("held");
+      hum(true);
+      cancelAnimationFrame(raf);
+      last = performance.now();
+      raf = requestAnimationFrame(loop);
+    }
+
+    function release(full = false) {
+      if (!holding) return;
+      holding = false;
+      btn!.classList.remove("held");
+      hum(false);
+      if (full) {
+        level = 0;
+        setTimeout(draw, 250);
+      } else {
+        last = performance.now();
+        raf = requestAnimationFrame(loop);
+      }
+    }
+
+    btn.addEventListener("pointerdown", press);
+    btn.addEventListener("keydown", e => {
+      if (e.key === " " || e.key === "Enter") press(e);
+    });
+    for (const ev of ["pointerup", "pointerleave", "pointercancel"]) {
+      btn.addEventListener(ev, () => release());
+    }
+    btn.addEventListener("keyup", () => release());
+  }
+
+  document.addEventListener("astro:page-load", initCharge);
+</script>
