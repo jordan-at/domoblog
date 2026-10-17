@@ -1,0 +1,365 @@
+---
+const MOVES = ["U", "D", "L", "R", "F", "B"];
+---
+
+<div class="panel toy wide cube-toy">
+  <h3 class="toy-title">Spectrum cube</h3>
+  <div
+    class="cube-stage"
+    id="lc-stage"
+    tabindex="0"
+    aria-label="Spectrum cube. Drag to look around."
+  >
+    <div class="cube" id="lc-cube"></div>
+  </div>
+  <div class="moves" id="lc-moves">
+    {
+      MOVES.map(m => (
+        <button type="button" class="mv" data-m={m}>
+          {m}
+        </button>
+      ))
+    }
+    <button type="button" class="mv prime" id="lc-prime" aria-pressed="false"
+      >′</button
+    >
+  </div>
+  <div class="flex gap-2">
+    <button type="button" class="mini-btn" id="lc-scramble">Scramble</button>
+    <button type="button" class="mini-btn" id="lc-reset">Reset</button>
+  </div>
+  <p class="text-xs opacity-60" id="lc-msg">
+    Drag to spin the view. ′ turns the other way.
+  </p>
+</div>
+
+<style>
+  .cube-stage {
+    width: 100%;
+    height: 230px;
+    perspective: 800px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: none;
+    cursor: grab;
+    border-radius: 8px;
+    background: radial-gradient(
+      ellipse at 50% 60%,
+      rgba(57, 231, 95, 0.18),
+      transparent 70%
+    );
+    outline: none;
+  }
+  .cube {
+    position: relative;
+    width: 0;
+    height: 0;
+    transform-style: preserve-3d;
+  }
+  .cube :global(.cubie) {
+    position: absolute;
+    width: 0;
+    height: 0;
+    transform-style: preserve-3d;
+  }
+  .cube :global(.st) {
+    position: absolute;
+    left: -21px;
+    top: -21px;
+    width: 42px;
+    height: 42px;
+    box-sizing: border-box;
+    border: 3px solid #0b0b0b;
+    border-radius: 7px;
+    background: #0b0b0b;
+  }
+  .cube :global(.st.col) {
+    box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.35);
+  }
+  .moves {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+  }
+  .mv {
+    width: 40px;
+    height: 36px;
+    border-radius: 6px;
+    font-weight: 800;
+    cursor: pointer;
+    border: 1px solid var(--gl);
+    background: rgba(57, 231, 95, 0.1);
+  }
+  .mv.prime[aria-pressed="true"] {
+    background: var(--gl);
+    color: #04140a;
+  }
+  @media (min-width: 640px) {
+    .cube-stage {
+      height: 300px;
+    }
+  }
+</style>
+
+<script>
+  import { tone } from "@/scripts/mason-audio";
+
+  type V3 = [number, number, number];
+  type M3 = number[][]; // row-major 3x3
+  const S = 42; // cubie spacing (px)
+  const ID: M3 = [
+    [1, 0, 0],
+    [0, 1, 0],
+    [0, 0, 1],
+  ];
+  // Emotional spectrum: top willpower, bottom fear, etc. (y points down in CSS)
+  const FACES: { n: V3; t: string; c: string }[] = [
+    { n: [1, 0, 0], t: "rotateY(90deg)", c: "#e23b3b" }, // rage
+    { n: [-1, 0, 0], t: "rotateY(-90deg)", c: "#f08a24" }, // greed
+    { n: [0, -1, 0], t: "rotateX(90deg)", c: "#39e75f" }, // willpower
+    { n: [0, 1, 0], t: "rotateX(-90deg)", c: "#f5c518" }, // fear
+    { n: [0, 0, 1], t: "", c: "#3b8bff" }, // hope
+    { n: [0, 0, -1], t: "rotateY(180deg)", c: "#b048e8" }, // love
+  ];
+  const MOVES: Record<string, { axis: number; layer: number; dir: number }> = {
+    R: { axis: 0, layer: 1, dir: 1 },
+    L: { axis: 0, layer: -1, dir: -1 },
+    D: { axis: 1, layer: 1, dir: 1 },
+    U: { axis: 1, layer: -1, dir: -1 },
+    F: { axis: 2, layer: 1, dir: 1 },
+    B: { axis: 2, layer: -1, dir: -1 },
+  };
+
+  const mul = (a: M3, b: M3): M3 =>
+    a.map(row =>
+      [0, 1, 2].map(j => row[0] * b[0][j] + row[1] * b[1][j] + row[2] * b[2][j])
+    );
+  const apply = (m: M3, v: V3): V3 =>
+    m.map(r => r[0] * v[0] + r[1] * v[1] + r[2] * v[2]) as V3;
+  function rot(axis: number, dir: number): M3 {
+    const s = dir;
+    if (axis === 0)
+      return [
+        [1, 0, 0],
+        [0, 0, -s],
+        [0, s, 0],
+      ];
+    if (axis === 1)
+      return [
+        [0, 0, s],
+        [0, 1, 0],
+        [-s, 0, 0],
+      ];
+    return [
+      [0, -s, 0],
+      [s, 0, 0],
+      [0, 0, 1],
+    ];
+  }
+  const isId = (m: M3) =>
+    m.every((r, i) => r.every((v, j) => v === (i === j ? 1 : 0)));
+
+  type Cubie = { el: HTMLElement; p0: V3; R: M3; center: boolean };
+
+  function init() {
+    const stage = document.getElementById("lc-stage");
+    const cubeEl = document.getElementById("lc-cube");
+    const movesEl = document.getElementById("lc-moves");
+    const primeBtn = document.getElementById("lc-prime");
+    const msg = document.getElementById("lc-msg");
+    if (
+      !stage ||
+      !cubeEl ||
+      !movesEl ||
+      !primeBtn ||
+      !msg ||
+      stage.dataset.bound
+    )
+      return;
+    stage.dataset.bound = "1";
+
+    const cubies: Cubie[] = [];
+    let viewX = -28;
+    let viewY = -38;
+    let prime = false;
+    let busy = false;
+    let scrambled = false;
+    let moves = 0;
+    const queue: { m: string; inv: boolean; fast: boolean }[] = [];
+
+    const matrix = (c: Cubie) => {
+      const t = apply(c.R, c.p0).map(v => v * S);
+      const R = c.R;
+      return `matrix3d(${R[0][0]},${R[1][0]},${R[2][0]},0,${R[0][1]},${R[1][1]},${R[2][1]},0,${R[0][2]},${R[1][2]},${R[2][2]},0,${t[0]},${t[1]},${t[2]},1)`;
+    };
+    const place = (c: Cubie, pre = "") =>
+      (c.el.style.transform = `${pre} ${matrix(c)}`);
+    const setView = () =>
+      (cubeEl.style.transform = `rotateX(${viewX}deg) rotateY(${viewY}deg)`);
+
+    function build() {
+      cubeEl!.innerHTML = "";
+      cubies.length = 0;
+      for (let x = -1; x <= 1; x++)
+        for (let y = -1; y <= 1; y++)
+          for (let z = -1; z <= 1; z++) {
+            if (!x && !y && !z) continue;
+            const el = document.createElement("div");
+            el.className = "cubie";
+            const p0: V3 = [x, y, z];
+            for (const f of FACES) {
+              const outer = f.n.every((v, i) => v === 0 || v === p0[i]);
+              const st = document.createElement("div");
+              st.className = outer ? "st col" : "st";
+              if (outer) st.style.background = f.c;
+              st.style.transform = `${f.t} translateZ(${S / 2}px)`;
+              el.appendChild(st);
+            }
+            cubeEl!.appendChild(el);
+            const c: Cubie = {
+              el,
+              p0,
+              R: ID.map(r => [...r]),
+              center: p0.filter(v => v === 0).length === 2,
+            };
+            cubies.push(c);
+            place(c);
+          }
+    }
+
+    function turn(m: string, inv: boolean, fast: boolean) {
+      return new Promise<void>(done => {
+        const mv = MOVES[m];
+        const dir = inv ? -mv.dir : mv.dir;
+        const layer = cubies.filter(
+          c => apply(c.R, c.p0)[mv.axis] === mv.layer
+        );
+        const axisV = [0, 0, 0];
+        axisV[mv.axis] = 1;
+        const dur = fast ? 70 : 190;
+        const start = performance.now();
+        if (!fast)
+          tone(260 + Math.random() * 40, {
+            dur: 0.05,
+            type: "square",
+            vol: 0.04,
+            slideTo: 180,
+          });
+        const frame = (now: number) => {
+          const t = Math.min(1, (now - start) / dur);
+          const e = 1 - Math.pow(1 - t, 3);
+          const ang = 90 * dir * e;
+          for (const c of layer)
+            place(c, `rotate3d(${axisV.join(",")},${ang}deg)`);
+          if (t < 1) return requestAnimationFrame(frame);
+          const Q = rot(mv.axis, dir);
+          for (const c of layer) {
+            c.R = mul(Q, c.R);
+            place(c);
+          }
+          if (!fast) tone(1800, { dur: 0.012, type: "square", vol: 0.03 });
+          done();
+        };
+        requestAnimationFrame(frame);
+      });
+    }
+
+    async function pump() {
+      if (busy) return;
+      busy = true;
+      while (queue.length) {
+        const { m, inv, fast } = queue.shift()!;
+        await turn(m, inv, fast);
+        if (!fast) {
+          moves++;
+          checkSolved();
+        }
+      }
+      busy = false;
+    }
+
+    function checkSolved() {
+      const solved = cubies.every(c => c.center || isId(c.R));
+      if (solved && scrambled) {
+        scrambled = false;
+        msg!.textContent = `Solved in ${moves} moves! Full willpower.`;
+        [523, 659, 784, 1047, 1319].forEach((f, i) =>
+          setTimeout(
+            () => tone(f, { dur: 0.15, type: "square", vol: 0.05 }),
+            i * 100
+          )
+        );
+      } else if (scrambled) msg!.textContent = `Moves: ${moves}`;
+    }
+
+    movesEl.addEventListener("click", e => {
+      const b = (e.target as HTMLElement).closest<HTMLElement>("[data-m]");
+      if (!b) return;
+      queue.push({ m: b.dataset.m!, inv: prime, fast: false });
+      pump();
+    });
+    primeBtn.addEventListener("click", () => {
+      prime = !prime;
+      primeBtn.setAttribute("aria-pressed", String(prime));
+    });
+    document.getElementById("lc-scramble")?.addEventListener("click", () => {
+      if (busy) return;
+      const keys = Object.keys(MOVES);
+      let last = "";
+      for (let i = 0; i < 22; i++) {
+        let m = keys[Math.floor(Math.random() * keys.length)];
+        while (m === last) m = keys[Math.floor(Math.random() * keys.length)];
+        last = m;
+        queue.push({ m, inv: Math.random() < 0.5, fast: true });
+      }
+      tone(200, { dur: 0.6, type: "sawtooth", vol: 0.03, slideTo: 800 });
+      pump().then(() => {
+        scrambled = true;
+        moves = 0;
+        msg!.textContent = "Scrambled! Moves: 0";
+      });
+    });
+    document.getElementById("lc-reset")?.addEventListener("click", () => {
+      if (busy) return;
+      build();
+      scrambled = false;
+      moves = 0;
+      msg!.textContent = "Drag to spin the view. ′ turns the other way.";
+    });
+
+    // drag to orbit
+    let drag = false;
+    let lx = 0;
+    let ly = 0;
+    stage.addEventListener("pointerdown", e => {
+      drag = true;
+      stage.setPointerCapture(e.pointerId);
+      lx = e.clientX;
+      ly = e.clientY;
+    });
+    stage.addEventListener("pointermove", e => {
+      if (!drag) return;
+      viewY += (e.clientX - lx) * 0.6;
+      viewX = Math.max(-80, Math.min(80, viewX - (e.clientY - ly) * 0.6));
+      lx = e.clientX;
+      ly = e.clientY;
+      setView();
+    });
+    stage.addEventListener("pointerup", () => (drag = false));
+    stage.addEventListener("keydown", e => {
+      const m = e.key.toUpperCase();
+      if (MOVES[m]) {
+        e.preventDefault();
+        queue.push({ m, inv: e.shiftKey, fast: false });
+        pump();
+      }
+    });
+
+    build();
+    setView();
+  }
+
+  document.addEventListener("astro:page-load", init);
+</script>

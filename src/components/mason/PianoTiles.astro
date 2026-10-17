@@ -1,0 +1,292 @@
+---
+const SONGS = ["Ode to Joy", "Twinkle Twinkle", "Für Elise", "Sector 2814"];
+---
+
+<div class="panel toy tiles-toy">
+  <h3 class="toy-title">Piano tiles</h3>
+  <canvas class="tiles" id="pt-canvas" aria-label="Piano tiles game"></canvas>
+  <div class="flex flex-wrap justify-center gap-2">
+    <select id="pt-song" aria-label="Song">
+      {SONGS.map((s, i) => <option value={i}>{s}</option>)}
+    </select>
+    <button type="button" class="mini-btn" id="pt-restart">Restart</button>
+  </div>
+  <p class="text-xs opacity-60" id="pt-msg">
+    Tap only the green tiles. Don't miss one. Best: 0
+  </p>
+</div>
+
+<style>
+  .tiles {
+    width: 100%;
+    max-width: 300px;
+    height: 420px;
+    border-radius: 8px;
+    border: 1px solid rgba(57, 231, 95, 0.45);
+    background: #06140a;
+    touch-action: none;
+    cursor: pointer;
+  }
+  select {
+    padding: 0.25rem 0.5rem;
+    border-radius: 999px;
+    border: 1px solid var(--gl);
+    background: transparent;
+    color: inherit;
+    font-size: 0.8rem;
+  }
+  select option {
+    color: #000;
+  }
+  @media (min-width: 640px) {
+    .tiles-toy {
+      grid-row: span 2;
+    }
+  }
+</style>
+
+<script>
+  import { tone, midiToFreq } from "@/scripts/mason-audio";
+
+  // Public-domain melodies, plus our own studio tune.
+  const MELODIES: number[][] = [
+    [
+      64, 64, 65, 67, 67, 65, 64, 62, 60, 60, 62, 64, 64, 62, 62, 64, 64, 65,
+      67, 67, 65, 64, 62, 60, 60, 62, 64, 62, 60, 60,
+    ].map(n => n + 12),
+    [
+      60, 60, 67, 67, 69, 69, 67, 65, 65, 64, 64, 62, 62, 60, 67, 67, 65, 65,
+      64, 64, 62, 67, 67, 65, 65, 64, 64, 62,
+    ].map(n => n + 12),
+    [
+      76, 75, 76, 75, 76, 71, 74, 72, 69, 60, 64, 69, 71, 64, 68, 71, 72, 64,
+      76, 75, 76, 75, 76, 71, 74, 72, 69, 60, 64, 69, 71, 64, 72, 71, 69,
+    ],
+    [69, 72, 76, 81, 79, 76, 74, 76, 72, 74, 76, 79, 81, 76, 79],
+  ];
+  const LANES = 4;
+  const BEST = "mason-tiles-best";
+
+  function init() {
+    const c = document.getElementById("pt-canvas") as HTMLCanvasElement | null;
+    const sel = document.getElementById("pt-song") as HTMLSelectElement | null;
+    const restart = document.getElementById("pt-restart");
+    const msg = document.getElementById("pt-msg");
+    if (!c || !sel || !restart || !msg || c.dataset.bound) return;
+    c.dataset.bound = "1";
+
+    let best = 0;
+    try {
+      best = Number(localStorage.getItem(BEST) ?? 0);
+    } catch {
+      /* fine */
+    }
+    const setMsg = (t?: string) =>
+      (msg.textContent =
+        t ?? `Tap only the green tiles. Don't miss one. Best: ${best}`);
+    setMsg();
+
+    let g = c.getContext("2d")!;
+    let W = 0;
+    let H = 0;
+    let TH = 0;
+    const size = () => {
+      const r = c.getBoundingClientRect();
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      c.width = Math.round(r.width * dpr);
+      c.height = Math.round(r.height * dpr);
+      g = c.getContext("2d")!;
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      W = r.width;
+      H = r.height;
+      TH = H / 4;
+    };
+
+    type Row = { lane: number; y: number; hit: number };
+    let rows: Row[] = [];
+    let state: "ready" | "play" | "over" = "ready";
+    let score = 0;
+    let note = 0;
+    let speed = 0;
+    let last = 0;
+    let failLane = -1;
+    let failRow: Row | null = null;
+    let raf = 0;
+
+    const randLane = (prev: number) => {
+      let l = Math.floor(Math.random() * LANES);
+      if (l === prev && Math.random() < 0.6)
+        l = (l + 1 + Math.floor(Math.random() * 3)) % LANES;
+      return l;
+    };
+    const fill = () => {
+      let top = rows[rows.length - 1];
+      while (!top || top.y > -TH) {
+        const y = top ? top.y - TH : H - TH * 1.5;
+        rows.push({ lane: randLane(top?.lane ?? -1), y, hit: 0 });
+        top = rows[rows.length - 1];
+      }
+    };
+    function reset() {
+      size();
+      rows = [];
+      fill();
+      state = "ready";
+      score = 0;
+      note = 0;
+      speed = TH / 650;
+      failLane = -1;
+      failRow = null;
+      draw();
+    }
+
+    const lowest = () => rows.find(r => !r.hit);
+
+    function draw() {
+      g.clearRect(0, 0, W, H);
+      g.fillStyle = "#06140a";
+      g.fillRect(0, 0, W, H);
+      const lw = W / LANES;
+      for (const r of rows) {
+        const x = r.lane * lw;
+        if (r.hit) {
+          g.fillStyle = `rgba(57,231,95,${0.18 * (1 - Math.min(1, r.hit))})`;
+          g.fillRect(x + 2, r.y + 2, lw - 4, TH - 4);
+          continue;
+        }
+        g.fillStyle = r === failRow ? "#e23b3b" : "#39e75f";
+        g.shadowColor = g.fillStyle;
+        g.shadowBlur = 14;
+        g.fillRect(x + 3, r.y + 3, lw - 6, TH - 6);
+        g.shadowBlur = 0;
+        if (state === "ready" && r === lowest()) {
+          g.fillStyle = "#04140a";
+          g.font = "bold 16px ui-monospace, monospace";
+          g.textAlign = "center";
+          g.fillText("START", x + lw / 2, r.y + TH / 2 + 5);
+        }
+      }
+      if (failLane >= 0) {
+        g.fillStyle = "rgba(226,59,59,0.45)";
+        g.fillRect(failLane * lw, 0, lw, H);
+      }
+      g.strokeStyle = "rgba(57,231,95,0.18)";
+      for (let i = 1; i < LANES; i++) {
+        g.beginPath();
+        g.moveTo(i * lw, 0);
+        g.lineTo(i * lw, H);
+        g.stroke();
+      }
+      g.fillStyle = "#d6ffe0";
+      g.font = "bold 28px ui-monospace, monospace";
+      g.textAlign = "center";
+      g.fillText(String(score), W / 2, 40);
+      if (state === "over") {
+        g.fillStyle = "rgba(4,20,10,0.8)";
+        g.fillRect(0, H / 2 - 50, W, 100);
+        g.fillStyle = "#39e75f";
+        g.font = "bold 22px ui-monospace, monospace";
+        g.fillText("GAME OVER", W / 2, H / 2 - 8);
+        g.font = "14px ui-monospace, monospace";
+        g.fillStyle = "#d6ffe0";
+        g.fillText("tap to try again", W / 2, H / 2 + 20);
+      }
+    }
+
+    function loop(now: number) {
+      const dt = Math.min(40, now - last);
+      last = now;
+      if (state === "play") {
+        for (const r of rows) {
+          r.y += speed * dt;
+          if (r.hit) r.hit += dt / 300;
+        }
+        rows = rows.filter(r => r.y < H + TH);
+        fill();
+        const low = lowest();
+        if (low && low.y > H - TH * 0.3) return fail(low.lane, low);
+      }
+      draw();
+      if (state === "play") raf = requestAnimationFrame(loop);
+    }
+
+    function fail(lane: number, row: Row | null) {
+      state = "over";
+      failLane = row ? -1 : lane;
+      failRow = row;
+      tone(220, { dur: 0.5, type: "sawtooth", vol: 0.06, slideTo: 70 });
+      if (score > best) {
+        best = score;
+        try {
+          localStorage.setItem(BEST, String(best));
+        } catch {
+          /* fine */
+        }
+        setMsg(`New best: ${best}!`);
+      } else setMsg(`Score ${score}. Best: ${best}`);
+      if (row) {
+        // scroll the missed tile back into view so you can see it
+        const back = row.y - (H - TH * 1.2);
+        for (const r of rows) r.y -= back;
+      }
+      draw();
+    }
+
+    function playNote() {
+      const mel = MELODIES[Number(sel!.value)] ?? MELODIES[0];
+      const m = mel[note % mel.length];
+      note++;
+      const f = midiToFreq(m);
+      tone(f, { dur: 0.45, type: "triangle", vol: 0.16 });
+      tone(f * 2, { dur: 0.18, type: "square", vol: 0.025 });
+    }
+
+    c.addEventListener("pointerdown", e => {
+      if (state === "over") return reset();
+      const rect = c.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const lane = Math.min(LANES - 1, Math.floor(x / (W / LANES)));
+      const low = lowest();
+      if (!low) return;
+      const onRow = rows.find(r => y >= r.y && y < r.y + TH);
+      if (onRow && onRow !== low && onRow.lane === lane) return; // early tap on a later tile, ignore
+      if (
+        lane === low.lane &&
+        y >= low.y - TH * 0.35 &&
+        y < low.y + TH + TH * 0.35
+      ) {
+        low.hit = 0.001;
+        score++;
+        speed = Math.min(TH / 180, speed + TH / 650 / 60);
+        playNote();
+        if (state === "ready") {
+          state = "play";
+          setMsg(`Go go go! Best: ${best}`);
+          last = performance.now();
+          cancelAnimationFrame(raf);
+          raf = requestAnimationFrame(loop);
+        }
+        if (state !== "play") draw();
+      } else if (state === "play" && (!onRow || onRow.lane !== lane)) {
+        fail(lane, null);
+      }
+    });
+    restart.addEventListener("click", () => {
+      cancelAnimationFrame(raf);
+      reset();
+      setMsg();
+    });
+    sel.addEventListener("change", () => {
+      cancelAnimationFrame(raf);
+      reset();
+      setMsg();
+    });
+    window.addEventListener("resize", () => {
+      if (state !== "play") reset();
+    });
+    reset();
+  }
+
+  document.addEventListener("astro:page-load", init);
+</script>

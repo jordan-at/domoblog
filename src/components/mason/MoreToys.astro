@@ -1,0 +1,1034 @@
+---
+const PADS = [
+  { k: "kick", label: "Boom", c: "#39e75f" },
+  { k: "snare", label: "Tss", c: "#3b8bff" },
+  { k: "hat", label: "Tik", c: "#f5c518" },
+  { k: "clap", label: "Clap", c: "#e23b3b" },
+];
+const SIMON = ["#39e75f", "#3b8bff", "#f5c518", "#e23b3b"];
+const CONSTRUCTS = [
+  "Giant fist",
+  "Hammer",
+  "Boxing glove",
+  "Rocket",
+  "Bowl cut",
+  "Rubber duck",
+];
+---
+
+<div class="panel toy">
+  <h3 class="toy-title">Drum pads</h3>
+  <div class="pads" id="mt-pads">
+    {
+      PADS.map(p => (
+        <button type="button" class="pad" data-k={p.k} style={`--pc:${p.c}`}>
+          {p.label}
+        </button>
+      ))
+    }
+  </div>
+  <p class="text-xs opacity-60">Keys A S D F work too.</p>
+</div>
+
+<div class="panel toy">
+  <h3 class="toy-title">Lantern memory</h3>
+  <div class="simon" id="mt-simon">
+    {
+      SIMON.map((c, i) => (
+        <button
+          type="button"
+          class="sq"
+          data-i={i}
+          style={`--sc:${c}`}
+          aria-label={`Pad ${i + 1}`}
+        />
+      ))
+    }
+  </div>
+  <button type="button" class="mini-btn" id="mt-simon-go">Start</button>
+  <p class="text-xs opacity-60" id="mt-simon-msg">Copy the pattern. Best: 0</p>
+</div>
+
+<div class="panel toy">
+  <h3 class="toy-title">Clicky dial</h3>
+  <div
+    class="dial"
+    id="mt-dial"
+    role="slider"
+    tabindex="0"
+    aria-label="Dial"
+    aria-valuemin="0"
+    aria-valuemax="100"
+    aria-valuenow="0"
+  >
+    <div class="dial-face" id="mt-dial-face">
+      <span class="dial-dot"></span>
+    </div>
+  </div>
+  <p class="dial-val" id="mt-dial-val">0</p>
+</div>
+
+<div class="panel toy wide">
+  <h3 class="toy-title">Theremin</h3>
+  <canvas class="pad-canvas" id="mt-theremin"></canvas>
+  <p class="text-xs opacity-60">
+    Drag around. Left/right is pitch, up/down is loudness.
+  </p>
+</div>
+
+<div class="panel toy">
+  <h3 class="toy-title">Whack the fear</h3>
+  <div class="holes" id="mt-holes">
+    {
+      Array.from({ length: 9 }).map((_, i) => (
+        <button
+          type="button"
+          class="hole"
+          data-i={i}
+          aria-label={`Hole ${i + 1}`}
+        >
+          <span class="blob" />
+        </button>
+      ))
+    }
+  </div>
+  <button type="button" class="mini-btn" id="mt-whack-go">Start (20s)</button>
+  <p class="text-xs opacity-60" id="mt-whack-msg">
+    Yellow is fear. Bonk it. Best: 0
+  </p>
+</div>
+
+<div class="panel toy wide">
+  <h3 class="toy-title">Bouncy balls</h3>
+  <canvas class="pad-canvas" id="mt-balls"></canvas>
+  <div class="flex gap-2">
+    <button type="button" class="mini-btn" id="mt-balls-shake">Shake</button>
+    <button type="button" class="mini-btn" id="mt-balls-clear">Clear</button>
+  </div>
+  <p class="text-xs opacity-60">Tap inside to drop balls.</p>
+</div>
+
+<div class="panel toy wide">
+  <h3 class="toy-title">Ring construct maker</h3>
+  <div class="stage" id="mt-stage"></div>
+  <form class="construct-form" id="mt-construct-form">
+    <input
+      id="mt-construct-in"
+      maxlength="24"
+      placeholder="Make a..."
+      aria-label="Construct name"
+    />
+    <button type="submit" class="mini-btn">Make it</button>
+  </form>
+  <div class="chips" id="mt-chips">
+    {
+      CONSTRUCTS.map(c => (
+        <button type="button" class="chip">
+          {c}
+        </button>
+      ))
+    }
+  </div>
+</div>
+
+<div class="panel toy">
+  <h3 class="toy-title">Confetti cannon</h3>
+  <button type="button" class="cannon" id="mt-cannon">FIRE</button>
+  <p class="text-xs opacity-60">Fired <span id="mt-cannon-n">0</span> times</p>
+</div>
+
+<div class="panel toy">
+  <h3 class="toy-title">Pop-it</h3>
+  <div class="popit" id="mt-popit">
+    {
+      ["#e23b3b", "#f08a24", "#f5c518", "#39e75f", "#3b8bff"].map(c =>
+        Array.from({ length: 5 }).map(() => (
+          <button
+            type="button"
+            class="pi"
+            style={`--pc:${c}`}
+            aria-label="Pop"
+          />
+        ))
+      )
+    }
+  </div>
+  <p class="text-xs opacity-60" id="mt-popit-msg">
+    Pop them all, then flip it.
+  </p>
+</div>
+
+<style>
+  .pads,
+  .simon {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .pad {
+    width: 78px;
+    height: 64px;
+    border-radius: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    color: var(--pc);
+    border: 2px solid var(--pc);
+    background: color-mix(in srgb, var(--pc) 15%, transparent);
+    transition:
+      transform 0.05s,
+      box-shadow 0.1s;
+  }
+  .pad.hit,
+  .sq.lit {
+    transform: scale(0.94);
+    box-shadow: 0 0 24px var(--pc, var(--sc));
+  }
+  .pad.hit {
+    background: color-mix(in srgb, var(--pc) 50%, transparent);
+  }
+  .sq {
+    width: 66px;
+    height: 66px;
+    border-radius: 12px;
+    cursor: pointer;
+    background: color-mix(in srgb, var(--sc) 25%, transparent);
+    border: 2px solid var(--sc);
+    transition:
+      transform 0.06s,
+      background 0.1s,
+      box-shadow 0.1s;
+  }
+  .sq.lit {
+    background: var(--sc);
+  }
+  .simon.locked .sq {
+    pointer-events: none;
+  }
+  .dial {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    cursor: grab;
+    touch-action: none;
+    background: repeating-conic-gradient(
+      from -2deg,
+      var(--gl) 0 4deg,
+      transparent 4deg 18deg
+    );
+    padding: 10px;
+  }
+  .dial-face {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    position: relative;
+    background: radial-gradient(circle at 35% 30%, #4a4a4a, #151515);
+    box-shadow:
+      0 0 18px -4px var(--gl),
+      inset 0 -4px 10px rgba(0, 0, 0, 0.6);
+  }
+  .dial-dot {
+    position: absolute;
+    top: 9px;
+    left: 50%;
+    width: 10px;
+    height: 10px;
+    margin-left: -5px;
+    border-radius: 50%;
+    background: var(--gl);
+    box-shadow: 0 0 10px var(--gl);
+  }
+  .dial-val {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--gl);
+    font-size: 1.4rem;
+  }
+  .pad-canvas {
+    width: 100%;
+    height: 190px;
+    border-radius: 8px;
+    border: 1px solid rgba(57, 231, 95, 0.45);
+    background: #06140a;
+    touch-action: none;
+    cursor: crosshair;
+  }
+  .holes {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .hole {
+    width: 54px;
+    height: 46px;
+    border-radius: 50%;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    background: radial-gradient(
+      ellipse at 50% 70%,
+      #000 0 55%,
+      rgba(57, 231, 95, 0.25) 56%
+    );
+  }
+  .blob {
+    position: absolute;
+    left: 50%;
+    bottom: -40px;
+    width: 34px;
+    height: 34px;
+    margin-left: -17px;
+    border-radius: 50% 50% 40% 40%;
+    background: radial-gradient(
+      circle at 35% 30%,
+      #fff6b0,
+      #f5c518 60%,
+      #b38a00
+    );
+    transition: bottom 0.12s ease-out;
+  }
+  .hole.up .blob {
+    bottom: 6px;
+  }
+  .hole.bonked .blob {
+    background: var(--gl);
+  }
+  .stage {
+    position: relative;
+    width: 100%;
+    height: 150px;
+    overflow: hidden;
+    border-radius: 8px;
+    background: radial-gradient(
+      ellipse at 50% 120%,
+      rgba(57, 231, 95, 0.25),
+      #06140a 70%
+    );
+  }
+  :global(.construct) {
+    position: absolute;
+    font-weight: 800;
+    font-size: 1.8rem;
+    white-space: nowrap;
+    color: transparent;
+    -webkit-text-stroke: 1.5px #7dffa0;
+    text-shadow: 0 0 14px rgba(57, 231, 95, 0.9);
+    animation: build 4.5s ease-out forwards;
+  }
+  @keyframes build {
+    0% {
+      transform: translate(-50%, 30px) scale(0.2);
+      opacity: 0;
+    }
+    15% {
+      transform: translate(-50%, 0) scale(1.15);
+      opacity: 1;
+    }
+    25% {
+      transform: translate(-50%, 0) scale(1);
+    }
+    50% {
+      transform: translate(-50%, -8px) scale(1);
+    }
+    75% {
+      transform: translate(-50%, 0) scale(1);
+      opacity: 1;
+    }
+    100% {
+      transform: translate(-50%, -40px) scale(1.4);
+      opacity: 0;
+    }
+  }
+  .construct-form {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+  }
+  .construct-form input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+    border: 1px solid var(--gl);
+    background: transparent;
+  }
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+  }
+  .chip {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    cursor: pointer;
+    background: rgba(57, 231, 95, 0.15);
+  }
+  .popit {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 5px;
+    padding: 8px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.04);
+  }
+  .pi {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    background: radial-gradient(
+      circle at 40% 35%,
+      color-mix(in srgb, var(--pc) 40%, white),
+      var(--pc) 70%
+    );
+    box-shadow: 0 3px 0 color-mix(in srgb, var(--pc) 55%, black);
+    transition:
+      transform 0.08s,
+      box-shadow 0.08s;
+  }
+  .pi.in {
+    transform: translateY(2px) scale(0.92);
+    background: radial-gradient(
+      circle at 50% 60%,
+      color-mix(in srgb, var(--pc) 70%, black),
+      var(--pc)
+    );
+    box-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.5);
+  }
+  .popit.flip {
+    animation: flip 0.45s ease-in-out;
+  }
+  @keyframes flip {
+    50% {
+      transform: rotateY(90deg);
+    }
+  }
+  .cannon {
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    color: #04140a;
+    background: radial-gradient(
+      circle at 35% 30%,
+      #b8ffc9,
+      var(--gl) 55%,
+      #1f9e3d
+    );
+    box-shadow:
+      0 8px 0 #157a2e,
+      0 0 24px -4px var(--gl);
+    transition:
+      transform 0.05s,
+      box-shadow 0.05s;
+  }
+  .cannon:active {
+    transform: translateY(6px);
+    box-shadow:
+      0 2px 0 #157a2e,
+      0 0 30px var(--gl);
+  }
+</style>
+
+<script>
+  import {
+    ac,
+    drum,
+    tone,
+    pop,
+    midiToFreq,
+    type DrumKind,
+  } from "@/scripts/mason-audio";
+
+  const once = (el: HTMLElement | null) => {
+    if (!el || el.dataset.bound) return false;
+    el.dataset.bound = "1";
+    return true;
+  };
+  const store = {
+    get: (k: string) => {
+      try {
+        return Number(localStorage.getItem(k) ?? 0);
+      } catch {
+        return 0;
+      }
+    },
+    set: (k: string, v: number) => {
+      try {
+        localStorage.setItem(k, String(v));
+      } catch {
+        /* fine */
+      }
+    },
+  };
+  const sizeCanvas = (c: HTMLCanvasElement) => {
+    const r = c.getBoundingClientRect();
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    c.width = Math.round(r.width * dpr);
+    c.height = Math.round(r.height * dpr);
+    const g = c.getContext("2d")!;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { g, w: r.width, h: r.height };
+  };
+
+  function pads() {
+    const wrap = document.getElementById("mt-pads");
+    if (!once(wrap)) return;
+    const hit = (k: string) => {
+      const b = wrap!.querySelector<HTMLElement>(`[data-k="${k}"]`);
+      drum(k as DrumKind);
+      b?.classList.add("hit");
+      setTimeout(() => b?.classList.remove("hit"), 90);
+    };
+    wrap!.addEventListener("pointerdown", e => {
+      const b = (e.target as HTMLElement).closest<HTMLElement>(".pad");
+      if (b) hit(b.dataset.k!);
+    });
+    const keys: Record<string, string> = {
+      a: "kick",
+      s: "snare",
+      d: "hat",
+      f: "clap",
+    };
+    document.addEventListener("keydown", e => {
+      if (!document.getElementById("mt-pads") || e.repeat) return;
+      const t = e.target as HTMLElement;
+      if (
+        t.tagName === "INPUT" ||
+        t.tagName === "TEXTAREA" ||
+        t.tagName === "SELECT"
+      )
+        return;
+      if (t.closest?.("#lc-stage")) return;
+      const k = keys[e.key.toLowerCase()];
+      if (k) hit(k);
+    });
+  }
+
+  function simon() {
+    const wrap = document.getElementById("mt-simon");
+    const go = document.getElementById("mt-simon-go");
+    const msg = document.getElementById("mt-simon-msg");
+    if (!once(wrap) || !go || !msg) return;
+    const notes = [64, 67, 72, 60];
+    const sqs = [...wrap!.querySelectorAll<HTMLElement>(".sq")];
+    let seq: number[] = [];
+    let pos = 0;
+    let best = store.get("mason-simon-best");
+    msg.textContent = `Copy the pattern. Best: ${best}`;
+
+    const flash = (i: number, ms = 260) => {
+      sqs[i].classList.add("lit");
+      tone(midiToFreq(notes[i]), { dur: ms / 1000, type: "square", vol: 0.06 });
+      setTimeout(() => sqs[i].classList.remove("lit"), ms);
+    };
+    const playSeq = () => {
+      wrap!.classList.add("locked");
+      seq.forEach((i, n) => setTimeout(() => flash(i), 500 + n * 420));
+      setTimeout(
+        () => wrap!.classList.remove("locked"),
+        500 + seq.length * 420
+      );
+      pos = 0;
+    };
+    const next = () => {
+      seq.push(Math.floor(Math.random() * 4));
+      msg.textContent = `Round ${seq.length}`;
+      playSeq();
+    };
+    go.addEventListener("click", () => {
+      seq = [];
+      go.textContent = "Restart";
+      next();
+    });
+    wrap!.addEventListener("pointerdown", e => {
+      const b = (e.target as HTMLElement).closest<HTMLElement>(".sq");
+      if (!b) return;
+      const i = Number(b.dataset.i);
+      flash(i, 180);
+      if (!seq.length) return;
+      if (i !== seq[pos]) {
+        const score = seq.length - 1;
+        if (score > best) {
+          best = score;
+          store.set("mason-simon-best", best);
+        }
+        tone(150, { dur: 0.5, type: "sawtooth", vol: 0.06, slideTo: 60 });
+        msg.textContent = `Oops! You got ${score}. Best: ${best}`;
+        seq = [];
+        go.textContent = "Start";
+        return;
+      }
+      if (++pos === seq.length) setTimeout(next, 400);
+    });
+  }
+
+  function dial() {
+    const el = document.getElementById("mt-dial");
+    const face = document.getElementById("mt-dial-face");
+    const val = document.getElementById("mt-dial-val");
+    if (!once(el) || !face || !val) return;
+    let angle = 0; // -135..135
+    let lastDetent = 0;
+    let lastA = 0;
+    const set = (a: number) => {
+      angle = Math.max(-135, Math.min(135, a));
+      face.style.transform = `rotate(${angle}deg)`;
+      const v = Math.round(((angle + 135) / 270) * 100);
+      val.textContent = String(v);
+      el!.setAttribute("aria-valuenow", String(v));
+      const det = Math.round(angle / 9);
+      if (det !== lastDetent) {
+        lastDetent = det;
+        tone(900 + v * 12, { dur: 0.015, type: "square", vol: 0.05 });
+        if (v === 100 || v === 0)
+          tone(v ? 1320 : 220, { dur: 0.12, type: "triangle", vol: 0.08 });
+      }
+    };
+    const at = (e: PointerEvent) => {
+      const r = el!.getBoundingClientRect();
+      return (
+        (Math.atan2(
+          e.clientY - (r.top + r.height / 2),
+          e.clientX - (r.left + r.width / 2)
+        ) *
+          180) /
+        Math.PI
+      );
+    };
+    let drag = false;
+    el!.addEventListener("pointerdown", e => {
+      drag = true;
+      el!.setPointerCapture(e.pointerId);
+      lastA = at(e);
+    });
+    el!.addEventListener("pointermove", e => {
+      if (!drag) return;
+      const a = at(e);
+      let d = a - lastA;
+      if (d > 180) d -= 360;
+      if (d < -180) d += 360;
+      lastA = a;
+      set(angle + d);
+    });
+    el!.addEventListener("pointerup", () => (drag = false));
+    el!.addEventListener(
+      "wheel",
+      e => {
+        e.preventDefault();
+        set(angle + (e.deltaY < 0 ? 9 : -9));
+      },
+      { passive: false }
+    );
+    el!.addEventListener("keydown", e => {
+      if (e.key === "ArrowUp" || e.key === "ArrowRight") set(angle + 9);
+      if (e.key === "ArrowDown" || e.key === "ArrowLeft") set(angle - 9);
+    });
+    set(-135);
+  }
+
+  function theremin() {
+    const c = document.getElementById(
+      "mt-theremin"
+    ) as HTMLCanvasElement | null;
+    if (!once(c)) return;
+    let { g, w, h } = sizeCanvas(c!);
+    window.addEventListener("resize", () => ({ g, w, h } = sizeCanvas(c!)));
+    let osc: OscillatorNode | null = null;
+    let gain: GainNode | null = null;
+    let lfo: OscillatorNode | null = null;
+    const trail: { x: number; y: number; life: number }[] = [];
+    let active = false;
+    let running = false;
+
+    const pos = (e: PointerEvent) => {
+      const r = c!.getBoundingClientRect();
+      return { x: e.clientX - r.left, y: e.clientY - r.top };
+    };
+    const update = (x: number, y: number) => {
+      const a = ac();
+      if (!a || !osc || !gain) return;
+      const fx = Math.max(0, Math.min(1, x / w));
+      const fy = Math.max(0, Math.min(1, 1 - y / h));
+      osc.frequency.setTargetAtTime(
+        110 * Math.pow(2, fx * 4),
+        a.currentTime,
+        0.02
+      );
+      gain.gain.setTargetAtTime(0.02 + fy * 0.14, a.currentTime, 0.03);
+      trail.push({ x, y, life: 1 });
+    };
+    const draw = () => {
+      g.fillStyle = "rgba(6,20,10,0.25)";
+      g.fillRect(0, 0, w, h);
+      for (const p of trail) {
+        g.beginPath();
+        g.fillStyle = `rgba(57,231,95,${p.life})`;
+        g.shadowColor = "#39e75f";
+        g.shadowBlur = 16;
+        g.arc(p.x, p.y, 3 + p.life * 9, 0, Math.PI * 2);
+        g.fill();
+        p.life -= 0.04;
+      }
+      g.shadowBlur = 0;
+      while (trail.length && trail[0].life <= 0) trail.shift();
+      if (active || trail.length) requestAnimationFrame(draw);
+      else running = false;
+    };
+    c!.addEventListener("pointerdown", e => {
+      const a = ac();
+      if (!a) return;
+      c!.setPointerCapture(e.pointerId);
+      active = true;
+      osc = a.createOscillator();
+      lfo = a.createOscillator();
+      const lfoGain = a.createGain();
+      gain = a.createGain();
+      osc.type = "sine";
+      lfo.frequency.value = 6;
+      lfoGain.gain.value = 6;
+      lfo.connect(lfoGain).connect(osc.frequency);
+      gain.gain.value = 0;
+      osc.connect(gain).connect(a.destination);
+      osc.start();
+      lfo.start();
+      const p = pos(e);
+      update(p.x, p.y);
+      if (!running) {
+        running = true;
+        requestAnimationFrame(draw);
+      }
+    });
+    c!.addEventListener("pointermove", e => {
+      if (!active) return;
+      const p = pos(e);
+      update(p.x, p.y);
+    });
+    const stop = () => {
+      if (!active) return;
+      active = false;
+      const a = ac();
+      if (a && gain && osc && lfo) {
+        gain.gain.setTargetAtTime(0, a.currentTime, 0.05);
+        osc.stop(a.currentTime + 0.3);
+        lfo.stop(a.currentTime + 0.3);
+      }
+      osc = lfo = null;
+      gain = null;
+    };
+    c!.addEventListener("pointerup", stop);
+    c!.addEventListener("pointercancel", stop);
+    g.fillStyle = "#06140a";
+    g.fillRect(0, 0, w, h);
+  }
+
+  function whack() {
+    const wrap = document.getElementById("mt-holes");
+    const go = document.getElementById(
+      "mt-whack-go"
+    ) as HTMLButtonElement | null;
+    const msg = document.getElementById("mt-whack-msg");
+    if (!once(wrap) || !go || !msg) return;
+    const holes = [...wrap!.querySelectorAll<HTMLElement>(".hole")];
+    let best = store.get("mason-whack-best");
+    msg.textContent = `Yellow is fear. Bonk it. Best: ${best}`;
+    let score = 0;
+    let playing = false;
+    let timer = 0;
+
+    const popUp = () => {
+      if (!playing) return;
+      const free = holes.filter(h => !h.classList.contains("up"));
+      const h = free[Math.floor(Math.random() * free.length)];
+      if (h) {
+        h.classList.add("up");
+        tone(500, { dur: 0.05, type: "triangle", vol: 0.04, slideTo: 800 });
+        setTimeout(
+          () => h.classList.remove("up", "bonked"),
+          650 + Math.random() * 500
+        );
+      }
+      timer = window.setTimeout(popUp, 380 + Math.random() * 420);
+    };
+    go.addEventListener("click", () => {
+      if (playing) return;
+      playing = true;
+      score = 0;
+      go.disabled = true;
+      let left = 20;
+      msg.textContent = `Score 0 · ${left}s`;
+      popUp();
+      const clock = setInterval(() => {
+        left--;
+        msg.textContent = `Score ${score} · ${left}s`;
+        if (left <= 0) {
+          clearInterval(clock);
+          clearTimeout(timer);
+          playing = false;
+          go.disabled = false;
+          holes.forEach(h => h.classList.remove("up", "bonked"));
+          if (score > best) {
+            best = score;
+            store.set("mason-whack-best", best);
+            [523, 659, 784, 1047].forEach((f, i) =>
+              setTimeout(() => tone(f, { dur: 0.12, vol: 0.05 }), i * 90)
+            );
+          }
+          msg.textContent = `Final: ${score}. Best: ${best}`;
+        }
+      }, 1000);
+    });
+    wrap!.addEventListener("pointerdown", e => {
+      const h = (e.target as HTMLElement).closest<HTMLElement>(".hole");
+      if (!h || !playing) return;
+      if (h.classList.contains("up") && !h.classList.contains("bonked")) {
+        h.classList.add("bonked");
+        score++;
+        drum("kick");
+        tone(880, { dur: 0.08, type: "square", vol: 0.05, slideTo: 1320 });
+        setTimeout(() => h.classList.remove("up", "bonked"), 120);
+      } else tone(120, { dur: 0.06, type: "triangle", vol: 0.05 });
+    });
+  }
+
+  function balls() {
+    const c = document.getElementById("mt-balls") as HTMLCanvasElement | null;
+    const shake = document.getElementById("mt-balls-shake");
+    const clear = document.getElementById("mt-balls-clear");
+    if (!once(c) || !shake || !clear) return;
+    let { g, w, h } = sizeCanvas(c!);
+    window.addEventListener("resize", () => ({ g, w, h } = sizeCanvas(c!)));
+    const COLORS = [
+      "#39e75f",
+      "#8bf5a5",
+      "#1fbf4a",
+      "#b8ffc9",
+      "#3b8bff",
+      "#f5c518",
+    ];
+    type Ball = {
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      r: number;
+      c: string;
+    };
+    const list: Ball[] = [];
+    let running = false;
+    let lastSound = 0;
+
+    const bounceSound = (b: Ball, speed: number) => {
+      const a = ac();
+      if (!a || speed < 1.2 || a.currentTime - lastSound < 0.03) return;
+      lastSound = a.currentTime;
+      tone(1600 / (b.r / 6), {
+        dur: 0.06,
+        type: "triangle",
+        vol: Math.min(0.08, speed / 60),
+      });
+    };
+    const step = () => {
+      g.clearRect(0, 0, w, h);
+      for (const b of list) {
+        b.vy += 0.35;
+        b.x += b.vx;
+        b.y += b.vy;
+        if (b.y + b.r > h) {
+          b.y = h - b.r;
+          bounceSound(b, Math.abs(b.vy));
+          b.vy *= -0.78;
+          b.vx *= 0.98;
+        }
+        if (b.x - b.r < 0 || b.x + b.r > w) {
+          b.x = Math.max(b.r, Math.min(w - b.r, b.x));
+          bounceSound(b, Math.abs(b.vx));
+          b.vx *= -0.85;
+        }
+        g.beginPath();
+        g.fillStyle = b.c;
+        g.shadowColor = b.c;
+        g.shadowBlur = 12;
+        g.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+        g.fill();
+      }
+      g.shadowBlur = 0;
+      const moving = list.some(
+        b => Math.abs(b.vy) > 0.3 || Math.abs(b.vx) > 0.05 || b.y + b.r < h - 1
+      );
+      if (moving) requestAnimationFrame(step);
+      else running = false;
+    };
+    const kick = () => {
+      if (!running) {
+        running = true;
+        requestAnimationFrame(step);
+      }
+    };
+    c!.addEventListener("pointerdown", e => {
+      const r = c!.getBoundingClientRect();
+      if (list.length > 30) list.shift();
+      list.push({
+        x: e.clientX - r.left,
+        y: e.clientY - r.top,
+        vx: (Math.random() - 0.5) * 6,
+        vy: -2,
+        r: 6 + Math.random() * 12,
+        c: COLORS[Math.floor(Math.random() * COLORS.length)],
+      });
+      tone(700, { dur: 0.05, type: "sine", vol: 0.05, slideTo: 300 });
+      kick();
+    });
+    shake.addEventListener("click", () => {
+      for (const b of list) {
+        b.vy = -8 - Math.random() * 8;
+        b.vx = (Math.random() - 0.5) * 14;
+      }
+      drum("snare");
+      kick();
+    });
+    clear.addEventListener("click", () => {
+      list.length = 0;
+      g.clearRect(0, 0, w, h);
+      tone(400, { dur: 0.15, slideTo: 100, vol: 0.05 });
+    });
+  }
+
+  function constructs() {
+    const form = document.getElementById(
+      "mt-construct-form"
+    ) as HTMLFormElement | null;
+    const input = document.getElementById(
+      "mt-construct-in"
+    ) as HTMLInputElement | null;
+    const stage = document.getElementById("mt-stage");
+    const chips = document.getElementById("mt-chips");
+    if (!once(form) || !input || !stage || !chips) return;
+    const make = (text: string) => {
+      text = text.trim();
+      if (!text) return;
+      const el = document.createElement("span");
+      el.className = "construct";
+      el.textContent = text;
+      el.style.left = `${25 + Math.random() * 50}%`;
+      el.style.top = `${20 + Math.random() * 40}%`;
+      stage.appendChild(el);
+      setTimeout(() => el.remove(), 4600);
+      tone(220, { dur: 0.35, type: "sawtooth", vol: 0.04, slideTo: 880 });
+      setTimeout(() => tone(1320, { dur: 0.25, type: "sine", vol: 0.05 }), 300);
+    };
+    form!.addEventListener("submit", e => {
+      e.preventDefault();
+      make(input.value);
+      input.value = "";
+    });
+    chips.addEventListener("click", e => {
+      const b = (e.target as HTMLElement).closest(".chip");
+      if (b) make(b.textContent ?? "");
+    });
+  }
+
+  function confetti() {
+    const btn = document.getElementById("mt-cannon");
+    const n = document.getElementById("mt-cannon-n");
+    if (!once(btn) || !n) return;
+    let count = 0;
+    btn!.addEventListener("click", () => {
+      n.textContent = String(++count);
+      drum("kick");
+      pop();
+      tone(300, { dur: 0.3, type: "sawtooth", vol: 0.04, slideTo: 1200 });
+      const r = btn!.getBoundingClientRect();
+      const ox = r.left + r.width / 2;
+      const oy = r.top + r.height / 2;
+      const c = document.createElement("canvas");
+      c.style.cssText =
+        "position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:60";
+      document.body.appendChild(c);
+      c.width = innerWidth;
+      c.height = innerHeight;
+      const g = c.getContext("2d")!;
+      const COLORS = [
+        "#39e75f",
+        "#8bf5a5",
+        "#1fbf4a",
+        "#ffffff",
+        "#b8ffc9",
+        "#f5c518",
+      ];
+      const bits = Array.from({ length: 140 }, () => {
+        const a = -Math.PI / 2 + (Math.random() - 0.5) * 1.6;
+        const s = 8 + Math.random() * 12;
+        return {
+          x: ox,
+          y: oy,
+          vx: Math.cos(a) * s,
+          vy: Math.sin(a) * s,
+          rot: Math.random() * 6,
+          vr: (Math.random() - 0.5) * 0.4,
+          w: 5 + Math.random() * 6,
+          c: COLORS[Math.floor(Math.random() * COLORS.length)],
+        };
+      });
+      let frames = 0;
+      const tick = () => {
+        g.clearRect(0, 0, c.width, c.height);
+        for (const b of bits) {
+          b.vy += 0.35;
+          b.vx *= 0.99;
+          b.x += b.vx;
+          b.y += b.vy;
+          b.rot += b.vr;
+          g.save();
+          g.translate(b.x, b.y);
+          g.rotate(b.rot);
+          g.fillStyle = b.c;
+          g.fillRect(-b.w / 2, -b.w / 4, b.w, b.w / 2);
+          g.restore();
+        }
+        if (++frames < 200) requestAnimationFrame(tick);
+        else c.remove();
+      };
+      requestAnimationFrame(tick);
+    });
+  }
+
+  function popit() {
+    const wrap = document.getElementById("mt-popit");
+    const msg = document.getElementById("mt-popit-msg");
+    if (!once(wrap) || !msg) return;
+    let side = false; // false: popping "in", true: popping back "out"
+    wrap!.addEventListener("pointerdown", e => {
+      const b = (e.target as HTMLElement).closest<HTMLElement>(".pi");
+      if (!b || b.classList.contains("in") !== side) return;
+      b.classList.toggle("in");
+      pop();
+      const all = [...wrap!.querySelectorAll(".pi")];
+      if (all.every(x => x.classList.contains("in") !== side)) {
+        side = !side;
+        msg.textContent = "Flipped! Go again.";
+        wrap!.classList.remove("flip");
+        void wrap!.offsetWidth;
+        wrap!.classList.add("flip");
+        tone(300, { dur: 0.3, type: "triangle", vol: 0.06, slideTo: 900 });
+      }
+    });
+  }
+
+  function init() {
+    popit();
+    pads();
+    simon();
+    dial();
+    theremin();
+    whack();
+    balls();
+    constructs();
+    confetti();
+  }
+  document.addEventListener("astro:page-load", init);
+</script>

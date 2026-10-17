@@ -1,0 +1,733 @@
+---
+// Chiptune studio: preset songs (all original), a piano roll editor, and a
+// sticky mini player so music keeps going while you play with the toys.
+---
+
+<section class="studio w-full" id="studio">
+  <h2 class="mb-1 text-3xl font-bold">Chiptune Studio</h2>
+  <p class="mb-5 text-sm opacity-70">
+    Pick a song and hit play. Tap the grid to add or remove notes while it
+    plays. It keeps going while you mess with the toys.
+  </p>
+
+  <div class="studio-panel">
+    <div class="row">
+      <button type="button" class="play-btn" id="cs-play">▶ Play</button>
+      <select id="cs-song" aria-label="Song"></select>
+      <label class="ctl">
+        <span>Tempo <b id="cs-bpm-val">140</b></span>
+        <input type="range" min="70" max="220" id="cs-bpm" />
+      </label>
+      <label class="ctl">
+        <span>Volume</span>
+        <input type="range" min="0" max="100" value="70" id="cs-vol" />
+      </label>
+    </div>
+
+    <div class="row tabs" role="tablist" id="cs-tabs">
+      <button type="button" role="tab" data-t="lead" aria-selected="true"
+        >Lead</button
+      >
+      <button type="button" role="tab" data-t="bass" aria-selected="false"
+        >Bass</button
+      >
+      <button type="button" role="tab" data-t="drums" aria-selected="false"
+        >Drums</button
+      >
+    </div>
+
+    <div class="roll-wrap" id="cs-roll-wrap">
+      <div class="roll" id="cs-roll"></div>
+    </div>
+
+    <div class="row">
+      <button type="button" class="mini-btn" id="cs-mute"
+        >Mute this track</button
+      >
+      <button type="button" class="mini-btn" id="cs-clear"
+        >Clear this track</button
+      >
+      <button type="button" class="mini-btn" id="cs-surprise"
+        >Surprise melody</button
+      >
+      <button type="button" class="mini-btn" id="cs-reset">Reset song</button>
+    </div>
+    <p class="text-xs opacity-60" id="cs-status">
+      Your changes save on this device.
+    </p>
+  </div>
+</section>
+
+<div class="mini-player" id="cs-mini">
+  <span class="eq" id="cs-eq" aria-hidden="true"><i></i><i></i><i></i></span>
+  <span class="mini-name" id="cs-mini-name">Sector 2814</span>
+  <button type="button" class="mini-play" id="cs-mini-play" aria-label="Play"
+    >▶</button
+  >
+  <a href="#studio" class="mini-edit">Edit</a>
+</div>
+
+<style>
+  .studio-panel {
+    max-width: 900px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    padding: 1rem;
+    border: 1px solid rgba(57, 231, 95, 0.45);
+    border-radius: 10px;
+    background: rgba(57, 231, 95, 0.05);
+  }
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem 1rem;
+  }
+  .play-btn {
+    min-width: 110px;
+    padding: 0.55rem 1.2rem;
+    font-weight: 800;
+    border-radius: 6px;
+    background: var(--gl);
+    color: #04140a;
+    cursor: pointer;
+  }
+  select {
+    padding: 0.4rem 0.6rem;
+    border-radius: 6px;
+    border: 1px solid var(--gl);
+    background: transparent;
+    color: inherit;
+  }
+  select option {
+    color: #000;
+  }
+  .ctl {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    font-size: 0.75rem;
+    gap: 2px;
+  }
+  .ctl input {
+    accent-color: var(--gl);
+    width: 130px;
+  }
+  .tabs button {
+    padding: 0.35rem 1rem;
+    border-radius: 999px;
+    border: 1px solid var(--gl);
+    cursor: pointer;
+    font-weight: 700;
+  }
+  .tabs button[aria-selected="true"] {
+    background: var(--gl);
+    color: #04140a;
+  }
+  .tabs button.muted {
+    opacity: 0.45;
+    text-decoration: line-through;
+  }
+  .roll-wrap {
+    overflow-x: auto;
+    border-radius: 8px;
+    border: 1px solid rgba(57, 231, 95, 0.35);
+    background: #06140a;
+    -webkit-overflow-scrolling: touch;
+  }
+  .roll {
+    display: grid;
+    grid-template-columns: 46px repeat(32, 22px);
+    width: max-content;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .roll :global(.lbl) {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    font-size: 10px;
+    line-height: 16px;
+    padding-right: 6px;
+    text-align: right;
+    color: #8bf5a5;
+    background: #0a1f10;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  .roll :global(.lbl.k) {
+    color: #4a8a5a;
+    background: #071509;
+  }
+  .roll.drums :global(.lbl) {
+    line-height: 30px;
+    font-size: 11px;
+  }
+  .roll :global(.c) {
+    height: 16px;
+    cursor: pointer;
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.015);
+  }
+  .roll.drums :global(.c) {
+    height: 30px;
+  }
+  .roll :global(.c.k) {
+    background: rgba(0, 0, 0, 0.35);
+  }
+  .roll :global(.c.beat) {
+    border-left: 1px solid rgba(57, 231, 95, 0.25);
+  }
+  .roll :global(.c.bar) {
+    border-left: 2px solid rgba(57, 231, 95, 0.55);
+  }
+  .roll :global(.c.ph) {
+    background: rgba(57, 231, 95, 0.16);
+  }
+  .roll :global(.c.on) {
+    background: var(--gl);
+    border-radius: 3px;
+    box-shadow: 0 0 8px var(--gl);
+  }
+  .roll :global(.c.on.ph) {
+    background: #d6ffe0;
+  }
+  .mini-player {
+    position: fixed;
+    left: 50%;
+    bottom: 14px;
+    transform: translateX(-50%);
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.4rem 0.5rem 0.4rem 0.9rem;
+    border-radius: 999px;
+    border: 1px solid var(--gl);
+    background: rgba(4, 20, 10, 0.92);
+    color: #d6ffe0;
+    box-shadow: 0 0 24px -6px var(--gl);
+    font-size: 0.8rem;
+    max-width: calc(100vw - 32px);
+  }
+  .mini-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 40vw;
+  }
+  .mini-play {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--gl);
+    color: #04140a;
+    font-weight: 800;
+    cursor: pointer;
+  }
+  .mini-edit {
+    color: var(--gl);
+    text-decoration: underline;
+    padding-right: 0.4rem;
+  }
+  .eq {
+    display: inline-flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 14px;
+  }
+  .eq i {
+    width: 3px;
+    height: 4px;
+    background: var(--gl);
+  }
+  .eq.on i {
+    animation: eq 0.5s ease-in-out infinite alternate;
+  }
+  .eq.on i:nth-child(2) {
+    animation-delay: 0.15s;
+  }
+  .eq.on i:nth-child(3) {
+    animation-delay: 0.3s;
+  }
+  @keyframes eq {
+    to {
+      height: 14px;
+    }
+  }
+</style>
+
+<script>
+  import {
+    ac,
+    out,
+    tone,
+    drum,
+    midiToFreq,
+    type DrumKind,
+  } from "@/scripts/mason-audio";
+
+  const STEPS = 32;
+  type TrackId = "lead" | "bass" | "drums";
+  const NAMES = [
+    "C",
+    "C#",
+    "D",
+    "D#",
+    "E",
+    "F",
+    "F#",
+    "G",
+    "G#",
+    "A",
+    "A#",
+    "B",
+  ];
+  const range = (hi: number, lo: number) =>
+    Array.from({ length: hi - lo + 1 }, (_, i) => hi - i);
+  const ROWS: Record<TrackId, (number | DrumKind)[]> = {
+    lead: range(83, 60),
+    bass: range(59, 36),
+    drums: ["kick", "snare", "hat", "clap"],
+  };
+  const DRUM_LABEL: Record<string, string> = {
+    kick: "Kick",
+    snare: "Snare",
+    hat: "Hat",
+    clap: "Clap",
+  };
+  const label = (m: number) => `${NAMES[m % 12]}${Math.floor(m / 12) - 1}`;
+  const isBlack = (m: number) => NAMES[m % 12].includes("#");
+  const toMidi = (t: string) => {
+    const m = /^([A-G]#?)(\d)$/.exec(t);
+    return m ? NAMES.indexOf(m[1]) + 12 * (Number(m[2]) + 1) : null;
+  };
+
+  type Preset = {
+    name: string;
+    bpm: number;
+    lead: string;
+    bass: string;
+    drums: Partial<Record<DrumKind, number[]>>;
+  };
+  const everyN = (n: number, off = 0) =>
+    Array.from({ length: STEPS / n }, (_, i) => i * n + off);
+
+  // All original tunes.
+  const PRESETS: Preset[] = [
+    {
+      name: "Sector 2814",
+      bpm: 140,
+      lead: "A4 . C5 . E5 . A5 . G5 . E5 . D5 . E5 . C5 . D5 . E5 . G5 . A5 . . . E5 . G5 .",
+      bass: "A2 . A3 . A2 . A3 . F2 . F3 . F2 . F3 . C3 . C3 . G2 . G3 . A2 . A3 . A2 . E3 .",
+      drums: {
+        kick: everyN(4),
+        snare: everyN(8, 4),
+        hat: everyN(4, 2),
+        clap: [30],
+      },
+    },
+    {
+      name: "Willpower",
+      bpm: 120,
+      lead: "C5 . E5 G5 . E5 C5 . D5 . F5 A5 . F5 D5 . E5 . G5 C5 . G4 E5 . D5 . C5 . . . . .",
+      bass: "C3 . G2 . C3 . G2 . D3 . A2 . D3 . A2 . E3 . B2 . E3 . B2 . F2 . G2 . C3 . . .",
+      drums: {
+        kick: [0, 8, 14, 16, 24, 30],
+        snare: everyN(8, 4),
+        hat: everyN(2),
+      },
+    },
+    {
+      name: "Bowl Cut Boogie",
+      bpm: 160,
+      lead: "E5 E5 . G5 . E5 . B4 D5 . E5 . . . . . E5 E5 . G5 . A5 . G5 F#5 . E5 . D5 . B4 .",
+      bass: "E2 . E3 . E2 . E3 . G2 . G3 . A2 . B2 . E2 . E3 . E2 . E3 . C3 . C3 . D3 . B2 .",
+      drums: {
+        kick: [0, 6, 8, 16, 22, 24],
+        snare: everyN(8, 4),
+        hat: everyN(2),
+        clap: [28, 30],
+      },
+    },
+    {
+      name: "Construct Cruise",
+      bpm: 100,
+      lead: "G4 . B4 . D5 . . . C5 . B4 . A4 . . . G4 . B4 . D5 . G5 . F#5 . D5 . . . . .",
+      bass: "G2 . . . G2 . D3 . C3 . . . C3 . G2 . E2 . . . E2 . B2 . D3 . . . D3 . F#2 .",
+      drums: { kick: [0, 10, 16, 26], snare: [8, 24], hat: everyN(4) },
+    },
+    { name: "Blank (make your own)", bpm: 130, lead: "", bass: "", drums: {} },
+  ];
+
+  type Song = { bpm: number; cells: Record<TrackId, Set<string>> };
+  const KEY = "mason-studio-v1";
+
+  function fromPreset(p: Preset): Song {
+    const cells: Song["cells"] = {
+      lead: new Set(),
+      bass: new Set(),
+      drums: new Set(),
+    };
+    for (const t of ["lead", "bass"] as const) {
+      p[t]
+        .split(/\s+/)
+        .filter(Boolean)
+        .forEach((tok, s) => {
+          const m = toMidi(tok);
+          const r = m === null ? -1 : ROWS[t].indexOf(m);
+          if (r >= 0 && s < STEPS) cells[t].add(`${r}:${s}`);
+        });
+    }
+    for (const [k, steps] of Object.entries(p.drums)) {
+      const r = ROWS.drums.indexOf(k as DrumKind);
+      steps?.forEach(s => cells.drums.add(`${r}:${s}`));
+    }
+    return { bpm: p.bpm, cells };
+  }
+
+  type Saved = {
+    idx: number;
+    songs: Record<string, { bpm: number; cells: Record<TrackId, string[]> }>;
+  };
+  function loadSaved(): Saved {
+    try {
+      return JSON.parse(localStorage.getItem(KEY) ?? "") as Saved;
+    } catch {
+      return { idx: 0, songs: {} };
+    }
+  }
+  function writeSaved(s: Saved) {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(s));
+    } catch {
+      /* not saving is fine */
+    }
+  }
+
+  // ---- module state (survives page re-inits) ----
+  const saved = loadSaved();
+  saved.songs ??= {};
+  let idx = Math.min(saved.idx ?? 0, PRESETS.length - 1);
+  let song = getSong(idx);
+  let track: TrackId = "lead";
+  const muted = new Set<TrackId>();
+  let playing = false;
+  let step = 0;
+  let nextTime = 0;
+  let timer = 0;
+  let bus: GainNode | null = null;
+  let volume = 0.7;
+  const queue: { step: number; time: number }[] = [];
+  let ui: ReturnType<typeof bindUI> | null = null;
+
+  function getSong(i: number): Song {
+    const s = saved.songs[i];
+    if (!s) return fromPreset(PRESETS[i]);
+    return {
+      bpm: s.bpm,
+      cells: {
+        lead: new Set(s.cells.lead),
+        bass: new Set(s.cells.bass),
+        drums: new Set(s.cells.drums),
+      },
+    };
+  }
+  function persist() {
+    saved.idx = idx;
+    saved.songs[idx] = {
+      bpm: song.bpm,
+      cells: {
+        lead: [...song.cells.lead],
+        bass: [...song.cells.bass],
+        drums: [...song.cells.drums],
+      },
+    };
+    writeSaved(saved);
+  }
+
+  function getBus() {
+    const a = ac();
+    const o = out();
+    if (!a || !o) return null;
+    if (!bus) {
+      bus = a.createGain();
+      bus.connect(o);
+    }
+    bus.gain.value = volume;
+    return bus;
+  }
+
+  const stepDur = () => 60 / song.bpm / 4;
+
+  function playCell(t: TrackId, r: number, time?: number) {
+    const b = getBus();
+    if (!b) return;
+    const row = ROWS[t][r];
+    if (t === "drums") drum(row as DrumKind, time, b);
+    else if (t === "lead")
+      tone(midiToFreq(row as number), {
+        time,
+        dur: stepDur() * 0.9,
+        type: "square",
+        vol: 0.05,
+        dest: b,
+      });
+    else
+      tone(midiToFreq(row as number), {
+        time,
+        dur: stepDur() * 0.95,
+        type: "triangle",
+        vol: 0.17,
+        dest: b,
+      });
+  }
+
+  function playStep(s: number, time: number) {
+    for (const t of ["lead", "bass", "drums"] as const) {
+      if (muted.has(t)) continue;
+      for (const key of song.cells[t]) {
+        const [r, cs] = key.split(":").map(Number);
+        if (cs === s) playCell(t, r, time);
+      }
+    }
+  }
+
+  function schedule() {
+    const a = ac();
+    if (!a) return;
+    while (nextTime < a.currentTime + 0.12) {
+      playStep(step, nextTime);
+      queue.push({ step, time: nextTime });
+      nextTime += stepDur();
+      step = (step + 1) % STEPS;
+    }
+  }
+
+  function play() {
+    const a = ac();
+    if (!a || playing) return;
+    getBus();
+    playing = true;
+    step = 0;
+    nextTime = a.currentTime + 0.06;
+    schedule();
+    timer = window.setInterval(schedule, 25);
+    requestAnimationFrame(drawPlayhead);
+    ui?.syncPlay();
+  }
+  function stop() {
+    playing = false;
+    clearInterval(timer);
+    queue.length = 0;
+    ui?.setPlayhead(-1);
+    ui?.syncPlay();
+  }
+
+  function drawPlayhead() {
+    if (!playing) return;
+    const a = ac();
+    if (a) {
+      let cur = -1;
+      while (queue.length && queue[0].time <= a.currentTime)
+        cur = queue.shift()!.step;
+      if (cur >= 0) ui?.setPlayhead(cur);
+    }
+    requestAnimationFrame(drawPlayhead);
+  }
+
+  function bindUI() {
+    const $ = <T extends HTMLElement>(id: string) =>
+      document.getElementById(id) as T;
+    const playBtn = $<HTMLButtonElement>("cs-play");
+    const sel = $<HTMLSelectElement>("cs-song");
+    const bpm = $<HTMLInputElement>("cs-bpm");
+    const bpmVal = $("cs-bpm-val");
+    const vol = $<HTMLInputElement>("cs-vol");
+    const tabs = $("cs-tabs");
+    const roll = $("cs-roll");
+    const status = $("cs-status");
+    const miniName = $("cs-mini-name");
+    const miniPlay = $<HTMLButtonElement>("cs-mini-play");
+    const eq = $("cs-eq");
+    let cols: HTMLElement[][] = [];
+    let ph = -1;
+
+    sel.innerHTML = PRESETS.map(
+      (p, i) => `<option value="${i}">${p.name}</option>`
+    ).join("");
+
+    function render() {
+      const rows = ROWS[track];
+      roll.classList.toggle("drums", track === "drums");
+      let html = "";
+      rows.forEach((row, r) => {
+        const black = typeof row === "number" && isBlack(row);
+        const name = typeof row === "number" ? label(row) : DRUM_LABEL[row];
+        html += `<div class="lbl${black ? " k" : ""}">${name}</div>`;
+        for (let s = 0; s < STEPS; s++) {
+          const cls = ["c"];
+          if (black) cls.push("k");
+          if (s % 16 === 0) cls.push("bar");
+          else if (s % 4 === 0) cls.push("beat");
+          if (song.cells[track].has(`${r}:${s}`)) cls.push("on");
+          html += `<div class="${cls.join(" ")}" data-r="${r}" data-s="${s}"></div>`;
+        }
+      });
+      roll.innerHTML = html;
+      cols = Array.from({ length: STEPS }, () => []);
+      roll
+        .querySelectorAll<HTMLElement>(".c")
+        .forEach(c => cols[Number(c.dataset.s)].push(c));
+      ph = -1;
+      tabs.querySelectorAll<HTMLElement>("[data-t]").forEach(b => {
+        b.setAttribute("aria-selected", String(b.dataset.t === track));
+        b.classList.toggle("muted", muted.has(b.dataset.t as TrackId));
+      });
+      $("cs-mute").textContent = muted.has(track)
+        ? "Unmute this track"
+        : "Mute this track";
+    }
+    function syncHeader() {
+      sel.value = String(idx);
+      bpm.value = String(song.bpm);
+      bpmVal.textContent = String(song.bpm);
+      vol.value = String(Math.round(volume * 100));
+      miniName.textContent = PRESETS[idx].name;
+      status.textContent = saved.songs[idx]
+        ? "Edited. Saved on this device."
+        : "Your changes save on this device.";
+    }
+    function syncPlay() {
+      playBtn.textContent = playing ? "■ Stop" : "▶ Play";
+      miniPlay.textContent = playing ? "■" : "▶";
+      miniPlay.setAttribute("aria-label", playing ? "Stop" : "Play");
+      eq.classList.toggle("on", playing);
+    }
+    function setPlayhead(s: number) {
+      if (ph >= 0) cols[ph]?.forEach(c => c.classList.remove("ph"));
+      ph = s;
+      if (s >= 0) cols[s]?.forEach(c => c.classList.add("ph"));
+    }
+
+    const toggle = () => (playing ? stop() : play());
+    playBtn.addEventListener("click", toggle);
+    miniPlay.addEventListener("click", toggle);
+    sel.addEventListener("change", () => {
+      idx = Number(sel.value);
+      song = getSong(idx);
+      saved.idx = idx;
+      writeSaved(saved);
+      syncHeader();
+      render();
+    });
+    bpm.addEventListener("input", () => {
+      song.bpm = Number(bpm.value);
+      bpmVal.textContent = bpm.value;
+    });
+    bpm.addEventListener("change", () => {
+      persist();
+      syncHeader();
+    });
+    vol.addEventListener("input", () => {
+      volume = Number(vol.value) / 100;
+      if (bus) bus.gain.value = volume;
+    });
+    tabs.addEventListener("click", e => {
+      const b = (e.target as HTMLElement).closest<HTMLElement>("[data-t]");
+      if (!b) return;
+      track = b.dataset.t as TrackId;
+      render();
+    });
+
+    // painting
+    let painting = false;
+    let mode = true;
+    const apply = (c: HTMLElement) => {
+      const key = `${c.dataset.r}:${c.dataset.s}`;
+      if (song.cells[track].has(key) === mode) return;
+      if (mode) {
+        song.cells[track].add(key);
+        if (!playing) playCell(track, Number(c.dataset.r));
+      } else song.cells[track].delete(key);
+      c.classList.toggle("on", mode);
+    };
+    roll.addEventListener("pointerdown", e => {
+      const c = (e.target as HTMLElement).closest<HTMLElement>(".c");
+      if (!c) return;
+      painting = true;
+      mode = !c.classList.contains("on");
+      if (mode && playing) playCell(track, Number(c.dataset.r));
+      apply(c);
+    });
+    roll.addEventListener("pointermove", e => {
+      if (!painting || e.pointerType === "touch") return;
+      const c = (
+        document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null
+      )?.closest<HTMLElement>(".c");
+      if (c && roll.contains(c)) apply(c);
+    });
+    const endPaint = () => {
+      if (!painting) return;
+      painting = false;
+      persist();
+      syncHeader();
+    };
+    window.addEventListener("pointerup", endPaint);
+    roll.addEventListener("pointercancel", endPaint);
+
+    $("cs-mute").addEventListener("click", () => {
+      if (muted.has(track)) muted.delete(track);
+      else muted.add(track);
+      render();
+    });
+    $("cs-clear").addEventListener("click", () => {
+      song.cells[track].clear();
+      persist();
+      syncHeader();
+      render();
+    });
+    $("cs-surprise").addEventListener("click", () => {
+      const pool = [64, 67, 69, 72, 74, 76, 79, 81];
+      song.cells.lead.clear();
+      for (let s = 0; s < STEPS; s++) {
+        if (Math.random() < (s % 2 === 0 ? 0.55 : 0.12)) {
+          const m = pool[Math.floor(Math.random() * pool.length)];
+          song.cells.lead.add(`${ROWS.lead.indexOf(m)}:${s}`);
+        }
+      }
+      track = "lead";
+      persist();
+      syncHeader();
+      render();
+    });
+    $("cs-reset").addEventListener("click", () => {
+      delete saved.songs[idx];
+      writeSaved(saved);
+      song = fromPreset(PRESETS[idx]);
+      syncHeader();
+      render();
+    });
+
+    syncHeader();
+    syncPlay();
+    render();
+    return { setPlayhead, syncPlay };
+  }
+
+  function init() {
+    const root = document.getElementById("studio");
+    if (!root || root.dataset.bound) return;
+    root.dataset.bound = "1";
+    ui = bindUI();
+  }
+
+  document.addEventListener("astro:page-load", init);
+  document.addEventListener("astro:before-swap", () => {
+    stop();
+    ui = null;
+  });
+</script>
