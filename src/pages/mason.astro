@@ -3,6 +3,12 @@ import Layout from "@/layouts/Layout.astro";
 import Header from "@/components/Header.astro";
 import Footer from "@/components/Footer.astro";
 import config from "@/config";
+import { existsSync } from "node:fs";
+
+// Drop a photo at public/images/mason/guy.(jpg|png|webp) and it shows up.
+const GUY_PHOTO = ["jpg", "jpeg", "png", "webp"]
+  .map(ext => `/images/mason/guy.${ext}`)
+  .find(src => existsSync(`public${src}`));
 
 const GUY_FACTS = [
   "Guy Gardner first showed up in Green Lantern #59 back in 1968, created by John Broome and Gil Kane.",
@@ -95,8 +101,134 @@ const RANKING = [
         <p id="count" class="text-xs opacity-50"></p>
       </section>
 
+      <section class="w-full" id="fidget">
+        <h2 class="mb-1 text-3xl font-bold">Fidget Zone</h2>
+        <p class="mb-5 text-sm opacity-70">
+          Turn your sound on. Press everything.
+        </p>
+        <div class="fidget-grid">
+          <div class="panel toy">
+            <h3 class="toy-title">Bubble wrap</h3>
+            <div class="bubbles" id="bubbles"></div>
+            <button class="mini-btn" id="bubble-reset" type="button"
+              >New sheet</button
+            >
+          </div>
+
+          <div class="panel toy">
+            <h3 class="toy-title">Spinner</h3>
+            <div class="spin-wrap">
+              <svg
+                id="spinner"
+                class="spinner"
+                viewBox="-100 -100 200 200"
+                aria-label="Fidget spinner"
+              >
+                <g>
+                  <path
+                    d="M0,-6 L0,-58 M-5,3 L-50,29 M5,3 L50,29"
+                    stroke="var(--gl)"
+                    stroke-width="22"
+                    stroke-linecap="round"
+                    opacity="0.35"></path>
+                  <circle cx="0" cy="-60" r="30" class="lobe"></circle>
+                  <circle cx="-52" cy="30" r="30" class="lobe"></circle>
+                  <circle cx="52" cy="30" r="30" class="lobe"></circle>
+                  <circle cx="0" cy="-60" r="13" class="cap"></circle>
+                  <circle cx="-52" cy="30" r="13" class="cap"></circle>
+                  <circle cx="52" cy="30" r="13" class="cap"></circle>
+                  <circle cx="0" cy="0" r="22" class="lobe"></circle>
+                  <circle cx="0" cy="0" r="10" class="cap"></circle>
+                </g>
+              </svg>
+            </div>
+            <p class="text-xs opacity-60">
+              Flick it. <span id="rpm">0</span> rpm
+            </p>
+          </div>
+
+          <div class="panel toy">
+            <h3 class="toy-title">Switches</h3>
+            <div class="switches" id="switches">
+              {
+                Array.from({ length: 6 }).map((_, i) => (
+                  <button
+                    class="switch"
+                    type="button"
+                    aria-pressed="false"
+                    aria-label={`Switch ${i + 1}`}
+                  >
+                    <span class="knob" />
+                  </button>
+                ))
+              }
+            </div>
+            <p class="text-xs opacity-60" id="switch-msg">All off.</p>
+          </div>
+
+          <div class="panel toy">
+            <h3 class="toy-title">Clicky buttons</h3>
+            <div class="clickies" id="clickies">
+              {
+                [
+                  "#39e75f",
+                  "#3b8bff",
+                  "#f5c518",
+                  "#e23b3b",
+                  "#b048e8",
+                  "#f08a24",
+                ].map((c, i) => (
+                  <button
+                    class="clicky"
+                    type="button"
+                    style={`--cc:${c}`}
+                    data-note={i}
+                    aria-label={`Button ${i + 1}`}
+                  />
+                ))
+              }
+            </div>
+            <p class="text-xs opacity-60">Each one plays a note.</p>
+          </div>
+
+          <div class="panel toy">
+            <h3 class="toy-title">Glow slider</h3>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value="0"
+              id="slider"
+              class="slider"
+              aria-label="Glow slider"
+            />
+            <div class="slider-glow" id="slider-glow"></div>
+          </div>
+
+          <div class="panel toy">
+            <h3 class="toy-title">Squish</h3>
+            <button
+              class="squish"
+              id="squish"
+              type="button"
+              aria-label="Squish blob"></button>
+            <p class="text-xs opacity-60">
+              Squished <span id="squish-n">0</span> times
+            </p>
+          </div>
+        </div>
+      </section>
+
       <section class="w-full">
         <h2 class="mb-4 text-3xl font-bold">The Guy Gardner File</h2>
+        {
+          GUY_PHOTO && (
+            <figure class="guy-photo panel">
+              <img src={GUY_PHOTO} alt="Guy Gardner" loading="lazy" />
+              <figcaption class="tag">Subject: Gardner, Guy</figcaption>
+            </figure>
+          )
+        }
         <ol class="guy-list">
           {
             GUY_FACTS.map((f, i) => (
@@ -297,6 +429,184 @@ const RANKING = [
       opacity: 1;
     }
   }
+
+  .guy-photo {
+    max-width: 360px;
+    margin: 0 auto 1.25rem;
+    padding: 0.6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .guy-photo img {
+    width: 100%;
+    border-radius: 6px;
+    box-shadow: 0 0 28px -6px var(--gl);
+  }
+  .fidget-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 0.9rem;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  .toy {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 1rem;
+    min-height: 250px;
+  }
+  .toy-title {
+    font-weight: 700;
+    color: var(--gl);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.85rem;
+  }
+  .mini-btn {
+    font-size: 0.8rem;
+    padding: 0.3rem 0.9rem;
+    border: 1px solid var(--gl);
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  .bubbles {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 6px;
+  }
+  :global(.bubble) {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    background: radial-gradient(
+      circle at 35% 30%,
+      rgba(255, 255, 255, 0.8),
+      rgba(57, 231, 95, 0.35) 45%,
+      rgba(57, 231, 95, 0.12)
+    );
+    border: 1px solid rgba(57, 231, 95, 0.6);
+    transition: transform 0.08s;
+  }
+  :global(.bubble:active) {
+    transform: scale(0.85);
+  }
+  :global(.bubble.popped) {
+    background: rgba(57, 231, 95, 0.06);
+    border-style: dashed;
+    transform: scale(0.8);
+    cursor: default;
+  }
+  .spin-wrap {
+    width: 160px;
+    height: 160px;
+    touch-action: none;
+    cursor: grab;
+  }
+  .spinner {
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 0 10px rgba(57, 231, 95, 0.5));
+  }
+  .spinner :global(.lobe) {
+    fill: var(--gl);
+  }
+  .spinner :global(.cap) {
+    fill: #0b3a18;
+    stroke: #8bf5a5;
+    stroke-width: 3;
+  }
+  .switches {
+    display: grid;
+    grid-template-columns: repeat(3, auto);
+    gap: 14px 18px;
+  }
+  .switch {
+    width: 54px;
+    height: 30px;
+    border-radius: 999px;
+    background: rgba(128, 128, 128, 0.35);
+    position: relative;
+    cursor: pointer;
+    transition:
+      background 0.15s,
+      box-shadow 0.15s;
+  }
+  .switch .knob {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #fff;
+    transition: left 0.12s cubic-bezier(0.3, 1.6, 0.5, 1);
+  }
+  .switch[aria-pressed="true"] {
+    background: var(--gl);
+    box-shadow: 0 0 14px var(--gl);
+  }
+  .switch[aria-pressed="true"] .knob {
+    left: 27px;
+  }
+  .clickies {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+  .clicky {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    cursor: pointer;
+    background: var(--cc);
+    box-shadow: 0 6px 0 color-mix(in srgb, var(--cc) 55%, black);
+    transition:
+      transform 0.05s,
+      box-shadow 0.05s;
+  }
+  .clicky.down {
+    transform: translateY(5px);
+    box-shadow:
+      0 1px 0 color-mix(in srgb, var(--cc) 55%, black),
+      0 0 18px var(--cc);
+  }
+  .slider {
+    width: 100%;
+    accent-color: var(--gl);
+    cursor: pointer;
+  }
+  .slider-glow {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    border: 3px solid var(--gl);
+    background: var(--gl);
+    opacity: 0.1;
+    transition: box-shadow 0.05s;
+  }
+  .squish {
+    width: 120px;
+    height: 100px;
+    border-radius: 50% 50% 46% 46% / 60% 60% 40% 40%;
+    cursor: pointer;
+    background: radial-gradient(
+      circle at 35% 30%,
+      #b8ffc9,
+      var(--gl) 55%,
+      #1f9e3d
+    );
+    box-shadow: 0 0 24px -4px var(--gl);
+    transition: transform 0.35s cubic-bezier(0.3, 1.8, 0.4, 1);
+  }
+  .squish.pressed {
+    transform: scaleX(1.25) scaleY(0.7);
+    transition: transform 0.08s ease-out;
+  }
 </style>
 
 <script>
@@ -426,4 +736,267 @@ const RANKING = [
   }
 
   document.addEventListener("astro:page-load", initCharge);
+</script>
+
+<script>
+  let ctx: AudioContext | null = null;
+  function ac() {
+    try {
+      ctx ??= new AudioContext();
+      if (ctx.state === "suspended") void ctx.resume();
+      return ctx;
+    } catch {
+      return null;
+    }
+  }
+
+  function blip(
+    freq: number,
+    dur = 0.08,
+    type: OscillatorType = "sine",
+    vol = 0.08,
+    slideTo?: number
+  ) {
+    const a = ac();
+    if (!a) return;
+    const o = a.createOscillator();
+    const g = a.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, a.currentTime);
+    if (slideTo)
+      o.frequency.exponentialRampToValueAtTime(slideTo, a.currentTime + dur);
+    g.gain.setValueAtTime(vol, a.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + dur);
+    o.connect(g).connect(a.destination);
+    o.start();
+    o.stop(a.currentTime + dur + 0.02);
+  }
+
+  function pop() {
+    const a = ac();
+    if (!a) return;
+    const len = Math.floor(a.sampleRate * 0.05);
+    const buf = a.createBuffer(1, len, a.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++)
+      d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 4);
+    const src = a.createBufferSource();
+    const f = a.createBiquadFilter();
+    const g = a.createGain();
+    f.type = "bandpass";
+    f.frequency.value = 1200 + Math.random() * 1200;
+    g.gain.value = 0.9;
+    src.buffer = buf;
+    src.connect(f).connect(g).connect(a.destination);
+    src.start();
+  }
+
+  function bubbles() {
+    const wrap = document.getElementById("bubbles");
+    const reset = document.getElementById("bubble-reset");
+    if (!wrap || !reset || wrap.dataset.bound) return;
+    wrap.dataset.bound = "1";
+    const fill = () => {
+      wrap.innerHTML = Array.from(
+        { length: 30 },
+        () =>
+          `<button type="button" class="bubble" aria-label="Bubble"></button>`
+      ).join("");
+    };
+    wrap.addEventListener("pointerdown", e => {
+      const b = (e.target as HTMLElement).closest(".bubble");
+      if (!b || b.classList.contains("popped")) return;
+      b.classList.add("popped");
+      pop();
+      if (!wrap.querySelector(".bubble:not(.popped)")) {
+        [523, 659, 784, 1047].forEach((n, i) =>
+          setTimeout(() => blip(n, 0.12, "triangle"), 400 + i * 90)
+        );
+      }
+    });
+    reset.addEventListener("click", () => {
+      fill();
+      blip(300, 0.15, "sine", 0.06, 600);
+    });
+    fill();
+  }
+
+  function spinner() {
+    const svg = document.getElementById("spinner");
+    const wrap = svg?.parentElement;
+    const rpmEl = document.getElementById("rpm");
+    if (!svg || !wrap || !rpmEl || wrap.dataset.bound) return;
+    wrap.dataset.bound = "1";
+    const g = svg.querySelector("g")!;
+    let angle = 0;
+    let vel = 0; // deg per ms
+    let dragging = false;
+    let lastA = 0;
+    let lastT = 0;
+    let running = false;
+    let lastTick = 0;
+
+    const angleAt = (e: PointerEvent) => {
+      const r = wrap.getBoundingClientRect();
+      return (
+        (Math.atan2(
+          e.clientY - (r.top + r.height / 2),
+          e.clientX - (r.left + r.width / 2)
+        ) *
+          180) /
+        Math.PI
+      );
+    };
+
+    function frame(t: number) {
+      const dt = Math.min(50, t - lastT);
+      lastT = t;
+      if (!dragging) {
+        angle += vel * dt;
+        vel *= Math.pow(0.9988, dt);
+        if (Math.abs(vel) < 0.002) vel = 0;
+      }
+      g.setAttribute("transform", `rotate(${angle})`);
+      const rpm = Math.round((Math.abs(vel) * 60000) / 360);
+      rpmEl!.textContent = String(rpm);
+      // a soft tick each time a lobe passes, faster spin = more ticks
+      const lobe = Math.floor(angle / 120);
+      if (lobe !== lastTick && Math.abs(vel) > 0.01) {
+        lastTick = lobe;
+        blip(220 + Math.min(600, rpm / 2), 0.03, "triangle", 0.035);
+      }
+      if (dragging || vel !== 0) requestAnimationFrame(frame);
+      else running = false;
+    }
+    const start = () => {
+      if (running) return;
+      running = true;
+      lastT = performance.now();
+      requestAnimationFrame(frame);
+    };
+
+    wrap.addEventListener("pointerdown", e => {
+      dragging = true;
+      wrap.setPointerCapture(e.pointerId);
+      lastA = angleAt(e);
+      lastT = performance.now();
+      vel = 0;
+      start();
+    });
+    wrap.addEventListener("pointermove", e => {
+      if (!dragging) return;
+      const a = angleAt(e);
+      let d = a - lastA;
+      if (d > 180) d -= 360;
+      if (d < -180) d += 360;
+      const now = performance.now();
+      angle += d;
+      vel = vel * 0.5 + (d / Math.max(1, now - lastT)) * 0.5;
+      lastA = a;
+    });
+    const end = () => {
+      dragging = false;
+      vel = Math.max(-3, Math.min(3, vel * 1.4));
+    };
+    wrap.addEventListener("pointerup", end);
+    wrap.addEventListener("pointercancel", end);
+  }
+
+  function switches() {
+    const wrap = document.getElementById("switches");
+    const msg = document.getElementById("switch-msg");
+    if (!wrap || !msg || wrap.dataset.bound) return;
+    wrap.dataset.bound = "1";
+    const all = [...wrap.querySelectorAll<HTMLButtonElement>(".switch")];
+    wrap.addEventListener("click", e => {
+      const s = (e.target as HTMLElement).closest<HTMLButtonElement>(".switch");
+      if (!s) return;
+      const on = s.getAttribute("aria-pressed") !== "true";
+      s.setAttribute("aria-pressed", String(on));
+      blip(on ? 1800 : 1400, 0.025, "square", 0.05);
+      setTimeout(() => blip(on ? 2400 : 900, 0.02, "square", 0.03), 25);
+      const n = all.filter(
+        x => x.getAttribute("aria-pressed") === "true"
+      ).length;
+      if (n === all.length) {
+        msg.textContent = "Full power!";
+        [392, 523, 659, 784].forEach((f, i) =>
+          setTimeout(() => blip(f, 0.15, "sawtooth", 0.04), 150 + i * 80)
+        );
+      } else
+        msg.textContent = n === 0 ? "All off." : `${n} of ${all.length} on`;
+    });
+  }
+
+  function clickies() {
+    const wrap = document.getElementById("clickies");
+    if (!wrap || wrap.dataset.bound) return;
+    wrap.dataset.bound = "1";
+    const notes = [262, 294, 330, 392, 440, 523];
+    const up = (b: Element) => b.classList.remove("down");
+    wrap.addEventListener("pointerdown", e => {
+      const b = (e.target as HTMLElement).closest<HTMLButtonElement>(".clicky");
+      if (!b) return;
+      b.classList.add("down");
+      blip(notes[Number(b.dataset.note)], 0.35, "triangle", 0.09);
+      blip(2600, 0.015, "square", 0.03);
+    });
+    for (const ev of ["pointerup", "pointerleave", "pointercancel"]) {
+      wrap.addEventListener(
+        ev,
+        () => wrap.querySelectorAll(".down").forEach(up),
+        true
+      );
+    }
+  }
+
+  function slider() {
+    const el = document.getElementById("slider") as HTMLInputElement | null;
+    const glow = document.getElementById("slider-glow");
+    if (!el || !glow || el.dataset.bound) return;
+    el.dataset.bound = "1";
+    let last = 0;
+    el.addEventListener("input", () => {
+      const v = Number(el.value);
+      glow.style.opacity = String(0.1 + v / 111);
+      glow.style.boxShadow = `0 0 ${v / 1.5}px ${v / 4}px rgba(57,231,95,${v / 140})`;
+      const step = Math.floor(v / 5);
+      if (step !== last) {
+        last = step;
+        blip(150 + v * 8, 0.04, "sine", 0.06);
+      }
+    });
+  }
+
+  function squish() {
+    const el = document.getElementById("squish");
+    const n = document.getElementById("squish-n");
+    if (!el || !n || el.dataset.bound) return;
+    el.dataset.bound = "1";
+    let count = 0;
+    el.addEventListener("pointerdown", () => {
+      el.classList.add("pressed");
+      blip(320, 0.12, "sine", 0.12, 140);
+    });
+    const release = () => {
+      if (!el.classList.contains("pressed")) return;
+      el.classList.remove("pressed");
+      blip(180, 0.25, "sine", 0.1, 520);
+      n.textContent = String(++count);
+    };
+    el.addEventListener("pointerup", release);
+    el.addEventListener("pointerleave", release);
+    el.addEventListener("pointercancel", release);
+  }
+
+  function initFidget() {
+    bubbles();
+    spinner();
+    switches();
+    clickies();
+    slider();
+    squish();
+  }
+
+  document.addEventListener("astro:page-load", initFidget);
 </script>
