@@ -60,26 +60,29 @@ const steam = (q: string) =>
       <section class="panel">
         <h2 class="text-2xl font-bold">In the wheel</h2>
         <p class="text-sm opacity-70">
-          Untick anything you're not in the mood for.
+          Type a game to add it. Untick to sit it out, × to remove it.
         </p>
-        <ul id="owned" class="owned">
-          {
-            OWNED.map(g => (
-              <li>
-                <label>
-                  <input
-                    type="checkbox"
-                    data-game={g.name}
-                    data-default={g.off ? "0" : "1"}
-                    checked={!g.off}
-                  />
-                  <span>{g.name}</span>
-                  {g.note && <em class="note">{g.note}</em>}
-                </label>
-              </li>
-            ))
-          }
-        </ul>
+        <form id="add-form" class="add-form" autocomplete="off">
+          <input
+            id="add-input"
+            type="text"
+            maxlength="40"
+            placeholder="Add a game…"
+            aria-label="Game name"
+          />
+          <button type="submit">Add</button>
+        </form>
+        <ul id="owned" class="owned"></ul>
+        <div class="list-actions">
+          <button id="all-btn" type="button">Tick all</button>
+          <button id="reset-btn" type="button">Reset list</button>
+        </div>
+        <script
+          is:inline
+          type="application/json"
+          id="game-defaults"
+          set:html={JSON.stringify(OWNED)}
+        />
       </section>
 
       <section class="panel">
@@ -188,17 +191,75 @@ const steam = (q: string) =>
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 0.35rem 1rem;
   }
-  .owned label {
+  .owned :global(li) {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+  .owned :global(label) {
     display: flex;
     align-items: baseline;
     gap: 0.5rem;
     cursor: pointer;
   }
-  .owned input {
+  .owned :global(input) {
     accent-color: var(--accent);
     transform: translateY(2px);
   }
-  .note {
+  .owned :global(.remove) {
+    opacity: 0.45;
+    padding: 0 0.35rem;
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .owned :global(.remove:hover) {
+    opacity: 1;
+    color: var(--accent);
+  }
+  .add-form {
+    display: flex;
+    gap: 0.5rem;
+  }
+  .add-form input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--foreground);
+  }
+  .add-form input:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+  .add-form button,
+  .list-actions button {
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .add-form button {
+    background: var(--accent);
+    color: var(--accent-foreground);
+  }
+  .list-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+  }
+  .list-actions button {
+    border: 1px solid var(--border);
+    font-size: 0.85rem;
+    opacity: 0.8;
+  }
+  .list-actions button:hover {
+    opacity: 1;
+  }
+  .owned :global(.note) {
     font-size: 0.75rem;
     opacity: 0.6;
   }
@@ -221,17 +282,19 @@ const steam = (q: string) =>
 </style>
 
 <script>
-  const STORE_KEY = "games-wheel-v1";
+  type Entry = { name: string; note?: string; on: boolean };
+  const STORE_KEY = "games-wheel-v2";
   const SPIN_MS = 5000;
 
-  const load = (): Record<string, boolean> => {
+  const loadList = (): Entry[] | null => {
     try {
-      return JSON.parse(localStorage.getItem(STORE_KEY) ?? "{}");
+      const v = JSON.parse(localStorage.getItem(STORE_KEY) ?? "null");
+      return Array.isArray(v) ? v : null;
     } catch {
-      return {};
+      return null;
     }
   };
-  const save = (v: Record<string, boolean>) => {
+  const saveList = (v: Entry[]) => {
     try {
       localStorage.setItem(STORE_KEY, JSON.stringify(v));
     } catch {
@@ -260,28 +323,103 @@ const steam = (q: string) =>
     const canvas = document.getElementById("wheel") as HTMLCanvasElement | null;
     const btn = document.getElementById("spin-btn") as HTMLButtonElement | null;
     const result = document.getElementById("result");
-    const boxes = Array.from(
-      document.querySelectorAll<HTMLInputElement>("#owned input[type=checkbox]")
-    );
-    if (!canvas || !btn || !result || !boxes.length) return;
+    const listEl = document.getElementById("owned");
+    const form = document.getElementById("add-form") as HTMLFormElement | null;
+    const input = document.getElementById(
+      "add-input"
+    ) as HTMLInputElement | null;
+    const defaultsEl = document.getElementById("game-defaults");
+    if (!canvas || !btn || !result || !listEl || !form || !input || !defaultsEl)
+      return;
     if (btn.dataset.bound) return;
     btn.dataset.bound = "1";
+
+    const defaults = (): Entry[] =>
+      (
+        JSON.parse(defaultsEl.textContent || "[]") as {
+          name: string;
+          note?: string;
+          off?: boolean;
+        }[]
+      ).map(g => ({ name: g.name, note: g.note, on: !g.off }));
+
+    let list: Entry[] = loadList() ?? defaults();
+
+    function commit() {
+      saveList(list);
+      renderList();
+      draw();
+    }
+
+    function renderList() {
+      listEl!.replaceChildren(
+        ...list.map((g, i) => {
+          const li = document.createElement("li");
+          const label = document.createElement("label");
+          const cb = document.createElement("input");
+          cb.type = "checkbox";
+          cb.checked = g.on;
+          cb.disabled = spinning;
+          cb.addEventListener("change", () => {
+            list[i].on = cb.checked;
+            commit();
+          });
+          const span = document.createElement("span");
+          span.textContent = g.name;
+          label.append(cb, span);
+          if (g.note) {
+            const em = document.createElement("em");
+            em.className = "note";
+            em.textContent = g.note;
+            label.append(em);
+          }
+          const x = document.createElement("button");
+          x.type = "button";
+          x.className = "remove";
+          x.textContent = "×";
+          x.disabled = spinning;
+          x.setAttribute("aria-label", `Remove ${g.name}`);
+          x.addEventListener("click", () => {
+            list.splice(i, 1);
+            commit();
+          });
+          li.append(label, x);
+          return li;
+        })
+      );
+    }
+
+    form.addEventListener("submit", e => {
+      e.preventDefault();
+      const name = input.value.trim().replace(/\s+/g, " ");
+      if (!name) return;
+      const existing = list.find(
+        g => g.name.toLowerCase() === name.toLowerCase()
+      );
+      if (existing) existing.on = true;
+      else list.push({ name, on: true });
+      input.value = "";
+      commit();
+    });
+
+    document.getElementById("all-btn")?.addEventListener("click", () => {
+      list.forEach(g => (g.on = true));
+      commit();
+    });
+    document.getElementById("reset-btn")?.addEventListener("click", () => {
+      if (!confirm("Reset the list back to the default games?")) return;
+      list = defaults();
+      commit();
+    });
 
     const ctx = canvas.getContext("2d")!;
     const size = canvas.width;
     const r = size / 2;
 
-    // Restore saved ticks
-    const saved = load();
-    for (const b of boxes) {
-      const name = b.dataset.game!;
-      if (name in saved) b.checked = saved[name];
-    }
-
     let angle = 0; // radians, wheel rotation
     let spinning = false;
 
-    const active = () => boxes.filter(b => b.checked).map(b => b.dataset.game!);
+    const active = () => list.filter(g => g.on).map(g => g.name);
 
     const css = getComputedStyle(document.documentElement);
     const accent = () => css.getPropertyValue("--accent").trim() || "#ea580c";
@@ -306,7 +444,7 @@ const steam = (q: string) =>
         ctx.fillStyle = "#ccc";
         ctx.font = "bold 36px sans-serif";
         ctx.textAlign = "center";
-        ctx.fillText("Tick some games", r, r + 12);
+        ctx.fillText("Add or tick some games", r, r + 12);
         return;
       }
       const seg = (Math.PI * 2) / games.length;
@@ -369,7 +507,10 @@ const steam = (q: string) =>
       }
       spinning = true;
       btn!.disabled = true;
-      boxes.forEach(b => (b.disabled = true));
+      form!
+        .querySelectorAll("input,button")
+        .forEach(el => ((el as HTMLInputElement).disabled = true));
+      renderList();
       result!.textContent = "";
       result!.classList.remove("pop");
 
@@ -405,7 +546,10 @@ const steam = (q: string) =>
         } else {
           spinning = false;
           btn!.disabled = false;
-          boxes.forEach(b => (b.disabled = false));
+          form!
+            .querySelectorAll("input,button")
+            .forEach(el => ((el as HTMLInputElement).disabled = false));
+          renderList();
           showResult(games[indexAtPointer(n)]);
         }
       };
@@ -421,16 +565,8 @@ const steam = (q: string) =>
       btn!.textContent = "Spin again";
     }
 
-    boxes.forEach(b =>
-      b.addEventListener("change", () => {
-        const state = load();
-        state[b.dataset.game!] = b.checked;
-        save(state);
-        draw();
-      })
-    );
-
     btn.addEventListener("click", spin);
+    renderList();
     draw();
   }
 
