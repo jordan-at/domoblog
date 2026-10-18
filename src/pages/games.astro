@@ -1,0 +1,438 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import Header from "@/components/Header.astro";
+import Footer from "@/components/Footer.astro";
+import config from "@/config";
+
+type Game = { name: string; note?: string; off?: boolean };
+
+// Games the group already owns. `off: true` = sits out of the wheel by default.
+const OWNED: Game[] = [
+  { name: "R.E.P.O." },
+  { name: "Peak" },
+  { name: "The Big Walk", note: "unfinished" },
+  { name: "The Outlast Trials" },
+  { name: "Deep Rock Galactic" },
+  { name: "Content Warning" },
+  { name: "Pacify" },
+  { name: "Chained Together" },
+  { name: "Split Fiction", note: "2 players" },
+  { name: "Lethal Company", note: "waiting for next update", off: true },
+];
+
+// Games worth picking up.
+const WISHLIST = [
+  { name: "Over the Hill", blurb: "Co-op off-road 4x4 exploring." },
+  {
+    name: "Flipping is Hard",
+    blurb: "Rage platformer as a brick phone. Solo or co-op.",
+  },
+  { name: "Burg", blurb: "First-person hide and seek / tag. Free on Steam." },
+];
+
+const steam = (q: string) =>
+  `https://store.steampowered.com/search/?term=${encodeURIComponent(q)}`;
+---
+
+<Layout
+  title={`Game night | ${config.site.title}`}
+  description="Spin the wheel to pick tonight's game."
+>
+  <meta slot="head" name="robots" content="noindex" />
+  <Header />
+
+  <main id="main-content" class="app-layout flex flex-1 flex-col items-center">
+    <div class="flex w-full flex-col items-center gap-6 py-10 text-center">
+      <h1 class="text-accent text-5xl font-bold sm:text-6xl">Game night</h1>
+      <p class="opacity-80">
+        No more 20 minutes of "idk what do you want to play".
+      </p>
+
+      <div class="wheel-wrap">
+        <div class="pointer" aria-hidden="true"></div>
+        <canvas id="wheel" width="800" height="800" aria-label="Game wheel"
+        ></canvas>
+      </div>
+
+      <button id="spin-btn" class="spin-btn" type="button">Spin</button>
+      <p id="result" class="result" aria-live="polite"></p>
+
+      <section class="panel">
+        <h2 class="text-2xl font-bold">In the wheel</h2>
+        <p class="text-sm opacity-70">
+          Untick anything you're not in the mood for.
+        </p>
+        <ul id="owned" class="owned">
+          {
+            OWNED.map(g => (
+              <li>
+                <label>
+                  <input
+                    type="checkbox"
+                    data-game={g.name}
+                    data-default={g.off ? "0" : "1"}
+                    checked={!g.off}
+                  />
+                  <span>{g.name}</span>
+                  {g.note && <em class="note">{g.note}</em>}
+                </label>
+              </li>
+            ))
+          }
+        </ul>
+      </section>
+
+      <section class="panel">
+        <h2 class="text-2xl font-bold">Worth getting</h2>
+        <ul class="wishlist">
+          {
+            WISHLIST.map(g => (
+              <li>
+                <a href={steam(g.name)} target="_blank" rel="noopener">
+                  {g.name}
+                </a>
+                <span class="opacity-70">{g.blurb}</span>
+              </li>
+            ))
+          }
+        </ul>
+      </section>
+    </div>
+  </main>
+
+  <Footer />
+</Layout>
+
+<style>
+  .wheel-wrap {
+    position: relative;
+    width: min(440px, calc(100vw - 32px));
+    aspect-ratio: 1;
+  }
+  #wheel {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    box-shadow:
+      0 0 0 4px var(--accent),
+      0 0 40px -10px var(--accent);
+  }
+  .pointer {
+    position: absolute;
+    top: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 16px solid transparent;
+    border-right: 16px solid transparent;
+    border-top: 30px solid var(--foreground);
+    z-index: 2;
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.5));
+  }
+  .spin-btn {
+    padding: 0.8rem 2.5rem;
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border-radius: 6px;
+    background: var(--accent);
+    color: var(--accent-foreground);
+    cursor: pointer;
+    transition:
+      transform 0.1s,
+      opacity 0.2s;
+  }
+  .spin-btn:active {
+    transform: scale(0.97);
+  }
+  .spin-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .result {
+    min-height: 2.5rem;
+    font-size: 1.75rem;
+    font-weight: 700;
+  }
+  .result.pop {
+    animation: pop 0.4s ease-out;
+  }
+  @keyframes pop {
+    0% {
+      transform: scale(0.6);
+      opacity: 0;
+    }
+    70% {
+      transform: scale(1.1);
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+  .panel {
+    width: 100%;
+    max-width: 560px;
+    text-align: left;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .owned {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 0.35rem 1rem;
+  }
+  .owned label {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    cursor: pointer;
+  }
+  .owned input {
+    accent-color: var(--accent);
+    transform: translateY(2px);
+  }
+  .note {
+    font-size: 0.75rem;
+    opacity: 0.6;
+  }
+  .wishlist {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .wishlist li {
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: 0.6rem;
+  }
+  .wishlist a {
+    color: var(--accent);
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+</style>
+
+<script>
+  const STORE_KEY = "games-wheel-v1";
+  const SPIN_MS = 5000;
+
+  const load = (): Record<string, boolean> => {
+    try {
+      return JSON.parse(localStorage.getItem(STORE_KEY) ?? "{}");
+    } catch {
+      return {};
+    }
+  };
+  const save = (v: Record<string, boolean>) => {
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify(v));
+    } catch {
+      /* private mode, whatever */
+    }
+  };
+
+  let audio: AudioContext | null = null;
+  function tick(freq = 900, dur = 0.04) {
+    try {
+      audio ??= new AudioContext();
+      const o = audio.createOscillator();
+      const g = audio.createGain();
+      o.frequency.value = freq;
+      g.gain.setValueAtTime(0.05, audio.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + dur);
+      o.connect(g).connect(audio.destination);
+      o.start();
+      o.stop(audio.currentTime + dur + 0.01);
+    } catch {
+      /* no sound, no problem */
+    }
+  }
+
+  function initWheel() {
+    const canvas = document.getElementById("wheel") as HTMLCanvasElement | null;
+    const btn = document.getElementById("spin-btn") as HTMLButtonElement | null;
+    const result = document.getElementById("result");
+    const boxes = Array.from(
+      document.querySelectorAll<HTMLInputElement>("#owned input[type=checkbox]")
+    );
+    if (!canvas || !btn || !result || !boxes.length) return;
+    if (btn.dataset.bound) return;
+    btn.dataset.bound = "1";
+
+    const ctx = canvas.getContext("2d")!;
+    const size = canvas.width;
+    const r = size / 2;
+
+    // Restore saved ticks
+    const saved = load();
+    for (const b of boxes) {
+      const name = b.dataset.game!;
+      if (name in saved) b.checked = saved[name];
+    }
+
+    let angle = 0; // radians, wheel rotation
+    let spinning = false;
+
+    const active = () => boxes.filter(b => b.checked).map(b => b.dataset.game!);
+
+    const css = getComputedStyle(document.documentElement);
+    const accent = () => css.getPropertyValue("--accent").trim() || "#ea580c";
+
+    function palette(n: number) {
+      // Spread hues around the wheel, anchored near the site accent.
+      const base = 20;
+      return Array.from({ length: n }, (_, i) => {
+        const h = (base + (i * 360) / n) % 360;
+        return `hsl(${h} 65% ${i % 2 ? 42 : 50}%)`;
+      });
+    }
+
+    function draw() {
+      const games = active();
+      ctx.clearRect(0, 0, size, size);
+      if (!games.length) {
+        ctx.fillStyle = "#333";
+        ctx.beginPath();
+        ctx.arc(r, r, r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#ccc";
+        ctx.font = "bold 36px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("Tick some games", r, r + 12);
+        return;
+      }
+      const seg = (Math.PI * 2) / games.length;
+      const colors = palette(games.length);
+      games.forEach((name, i) => {
+        // Segment 0 starts at the top (pointer), going clockwise.
+        const start = angle - Math.PI / 2 + i * seg;
+        ctx.beginPath();
+        ctx.moveTo(r, r);
+        ctx.arc(r, r, r, start, start + seg);
+        ctx.closePath();
+        ctx.fillStyle = colors[i];
+        ctx.fill();
+        ctx.strokeStyle = "rgba(0,0,0,0.35)";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        ctx.save();
+        ctx.translate(r, r);
+        // Flip labels on the left half so they never read upside down.
+        const mid = start + seg / 2;
+        const flip = Math.cos(mid) < 0;
+        ctx.rotate(flip ? mid + Math.PI : mid);
+        ctx.textAlign = flip ? "left" : "right";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "#fff";
+        const fs = games.length > 8 ? 30 : 36;
+        ctx.font = `bold ${fs}px sans-serif`;
+        let label = name;
+        while (ctx.measureText(label).width > r - 90 && label.length > 4) {
+          label = label.slice(0, -2) + "…";
+        }
+        ctx.shadowColor = "rgba(0,0,0,0.6)";
+        ctx.shadowBlur = 4;
+        ctx.fillText(label, flip ? -(r - 24) : r - 24, 0);
+        ctx.restore();
+      });
+      // hub
+      ctx.beginPath();
+      ctx.arc(r, r, 46, 0, Math.PI * 2);
+      ctx.fillStyle = "#1a1a1a";
+      ctx.fill();
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = accent();
+      ctx.stroke();
+    }
+
+    function indexAtPointer(n: number) {
+      const seg = (Math.PI * 2) / n;
+      // Pointer is at the top; segment i spans [angle + i*seg, angle + (i+1)*seg] from top.
+      const rel = ((-angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+      return Math.floor(rel / seg) % n;
+    }
+
+    function spin() {
+      const games = active();
+      if (spinning || games.length < 2) {
+        if (games.length === 1) showResult(games[0]);
+        return;
+      }
+      spinning = true;
+      btn!.disabled = true;
+      boxes.forEach(b => (b.disabled = true));
+      result!.textContent = "";
+      result!.classList.remove("pop");
+
+      const n = games.length;
+      const seg = (Math.PI * 2) / n;
+      const winner = Math.floor(Math.random() * n);
+      const jitter = (Math.random() - 0.5) * seg * 0.7;
+      // Angle that puts the middle of the winning segment under the pointer.
+      const targetMod = -(winner * seg + seg / 2 + jitter);
+      const startAngle = angle;
+      const turns = 6 + Math.floor(Math.random() * 3);
+      const current =
+        ((startAngle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+      const delta =
+        (((targetMod - current) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+      const total = delta + turns * Math.PI * 2;
+
+      const t0 = performance.now();
+      let lastIdx = indexAtPointer(n);
+      const ease = (t: number) => 1 - Math.pow(1 - t, 4);
+
+      const frame = (now: number) => {
+        const t = Math.min(1, (now - t0) / SPIN_MS);
+        angle = startAngle + total * ease(t);
+        draw();
+        const idx = indexAtPointer(n);
+        if (idx !== lastIdx) {
+          lastIdx = idx;
+          tick();
+        }
+        if (t < 1) {
+          requestAnimationFrame(frame);
+        } else {
+          spinning = false;
+          btn!.disabled = false;
+          boxes.forEach(b => (b.disabled = false));
+          showResult(games[indexAtPointer(n)]);
+        }
+      };
+      requestAnimationFrame(frame);
+    }
+
+    function showResult(name: string) {
+      result!.textContent = `${name}`;
+      void result!.offsetWidth;
+      result!.classList.add("pop");
+      tick(520, 0.15);
+      setTimeout(() => tick(780, 0.2), 140);
+      btn!.textContent = "Spin again";
+    }
+
+    boxes.forEach(b =>
+      b.addEventListener("change", () => {
+        const state = load();
+        state[b.dataset.game!] = b.checked;
+        save(state);
+        draw();
+      })
+    );
+
+    btn.addEventListener("click", spin);
+    draw();
+  }
+
+  document.addEventListener("astro:page-load", initWheel);
+</script>
